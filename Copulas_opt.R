@@ -67,35 +67,6 @@ eqfun <- function(params, U, copC, copG, copt){
   return(z)
 }
 
-# iterating over n assets
-for (i in 2:length(index_vector)) {
-  
-  # Matrix to save sigma forecasts
-  sigma_pred <- matrix(nrow = K, ncol = N)
-  
-  for (j in 1:length(names_vector)) {
-    t1 <- index_vector[i-1]
-    t2 <- index_vector[i]-1
-    
-    x <- cbind(returns[t1:t2,(j+1)])
-    
-    garch_fit <- try(ugarchfit(mod_garch, data = x, solver = "hybrid"), 
-                     silent = TRUE)
-    
-    residuals[[i-1]][[j]] <- garch_fit@fit$residuals
-    sigma[[i-1]][[j]] <- garch_fit@fit$sigma
-    garch_coef[[i-1]][[j]] <- garch_fit@fit$coef
-    unif_dist[[i-1]][[j]] <- psstd(q = residuals[[i]][[j]]/sigma[[i]][[j]],
-                                   nu = garch_coef[[i]][[j]][6],
-                                   xi = garch_coef[[i]][[j]][5])
-    
-    # Predicting return for t+1 in a rolling window
-    for(t in t1:t2){
-      x <- cbind(returns[t:(t2+(t-t1)),(j+1)])
-      sigma_pred[(t-t1+1),j] <- sigma(try(ugarchforecast(mod_garch, data = x, n.ahead = 1)))
-    }
-  }
-}
 
 # iterating over n assets
 for (i in 2:length(index_vector)) {
@@ -154,103 +125,38 @@ for (i in 2:length(index_vector)) {
   #linear combination of them
   ctg <- Cc + Ct + Cg 
   
-  #for each asset, generate copula 'z' dependence strucutre 
-  zsim <- matrix(nrow = K, ncol = N) 
+  #for each asset, generate copula 'z' dependence structure 
+  rtn_pred <- mean_pred <- sigma_pred <- zsim <- matrix(nrow = K, ncol = N) 
   for(j in 1:N){  
     zsim[,j] <- qsstd(ctg[,j], 
-                      nu = garch_coef[[j]][[6]], 
-                      xi = garch_coef[[j]][[5]]) / 
-      sd(qsstd(ctg[,j], nu = garch_coef[[j]][[6]], 
-               xi = garch_coef[[j]][[5]])) 
+                      nu = garch_coef[[j]][6], 
+                      xi = garch_coef[[j]][5]) / 
+      sd(qsstd(ctg[,j], nu = garch_coef[[j]][6], 
+               xi = garch_coef[[j]][5])) 
+    
+    rtn_t <- as.numeric(returns[(t2-1),(j+1)])
+    sigma_t <- sigma[K,j]
+    
+    sigma_pred[1,j] <- sqrt(garch_coef[[j]][7] + #omega
+                              garch_coef[[j]][3]*(rtn_t)^2 + #alpha1 
+                              garch_coef[[j]][4]*(sigma_t)^2) #beta1
+    mean_pred[1, j] <- garch_coef[[j]][1] + garch_coef[[j]][2]*rtn_t #mu e ar1
+    rtn_pred[1, j] <- mean_pred[1, j] + sigma_pred[1, j]*zsim[1,j]
+    
+    for(t in 2:K){
+      sigma_pred[t, j] <- sqrt(garch_coef[[j]][7] + #omega
+                                 garch_coef[[j]][2]*(rtn_pred[(t-1), j])^2 + #alpha1
+                                 garch_coef[[j]][3]*(sigma_pred[(t-1), j])^2) #beta1
+      mean_pred[t, j] <- garch_coef[[j]][1] + garch_coef[[j]][2]*rtn_pred[(t-1), j] #mu e ar1
+      rtn_pred[t, j] <- mean_pred[t, j] + sigma_pred[t, j]*zsim[t,j]
+    }
+    
   }
  
   
 }
 
-ret_sim[z,j] = ((garch_coefs[[i]][[j]][[1]] * RZ[1260,j]) + (garch_coefs[[i]][[j]][[2]] * RZ[1259,j]) +  #AR1 * R_t-1, AR2 * R_t-2
-                  (garch_coefs[[i]][[j]][[3]] * e_f_t2_t1[1]) + (garch_coefs[[i]][[j]][[4]] * e_f_t2_t1[2]) +  #MA1*e_t-1, MA2*e_t-2
-                  (zsim[z,j] * (sqrt(garch_coefs[[i]][[j]][[9]]) +  ##alfa0
-                                  sqrt(garch_coefs[[i]][[j]][[5]]) * e_f_t2_t1[2] + ##alfa1 * e_t-1
-                                  sqrt(garch_coefs[[i]][[j]][[6]]) * sigma_f_t1))) ##beta1  * s_t-1
 
-
-
-
-for(i in 1:(length(ymd_vector)-1)){
-  #clayton, t, gumbel variates matrix
-  Cc <- Cg <- Ct <- matrix(0,nrow = nsim, ncol = N)   
-  ctg <- matrix(0, nrow = nsim, ncol = N) 
-  
-  ##generating copula variates
-  Cc[,]<- cop_param[[i]][[5]]*rCopula(n = nsim, 
-                                      copula = claytonCopula(param = cop_param[[i]][[1]], 
-                                                             dim = N))   
-  Cg[,]<- cop_param[[i]][[6]]*rCopula(n = nsim, 
-                                      copula = gumbelCopula(param = cop_param[[i]][[2]], 
-                                                            dim = N))
-  Ct[,]<- cop_param[[i]][[7]]*rCopula(n = nsim, 
-                                      copula = tCopula(param = cop_param[[i]][[3]], 
-                                                       df = cop_param[[i]][[4]], 
-                                                       dim = N))
-  #linear combination of them
-  ctg <- Cc + Ct + Cg 
-  
-  #for each asset, generate copula 'z' dependence strucutre 
-  zsim <- matrix(0, nrow = nsim, ncol = N) 
-  for(j in 1:N){  
-    zsim[,j] <- qsstd(ctg[,j], 
-                      nu = garch_coef[[i]][[j]][[6]], 
-                      xi = garch_coef[[i]][[j]][[5]]) / 
-      sd(qsstd(ctg[,j], nu = garch_coef[[i]][[j]][[6]], 
-               xi = garch_coef[[i]][[j]][[5]])) 
-  }
-  
-  #simulated returns matrix
-  ret_sim <- matrix(0, nrow = nsim, ncol = N)    
-  #getting real returns we'll use in one-step forward armaGarch's AR forecasting
-  RZ <- returns 
-  #K scenarios generation for each asset
-  
-}
-
-
-
-
-#simulated returns matrix
-ret_sim <- matrix(0, nrow = nsim, ncol = N)    
-#getting real returns we'll use in one-step forward armaGarch's AR forecasting
-RZ <- returns 
-for(j in 2:N){   #K scenarios generation for each asset
-  sigma_f_t1 <- tail(sigma_per[[j]],1) ##(t-1) sigma for GARCH forecasting
-  e_f_t2_t1 <- tail(resid_per[[j]],2) ##(t-2, t-1) residuals for MA forecasting
-  for(z in 1:nsim){
-    ret_sim[z,j] = ((garch_coefs[[i]][[j]][[1]] * RZ[1260,j]) + (garch_coefs[[i]][[j]][[2]] * RZ[1259,j]) +  #AR1 * R_t-1, AR2 * R_t-2
-                      (garch_coefs[[i]][[j]][[3]] * e_f_t2_t1[1]) + (garch_coefs[[i]][[j]][[4]] * e_f_t2_t1[2]) +  #MA1*e_t-1, MA2*e_t-2
-                      (zsim[z,j] * (sqrt(garch_coefs[[i]][[j]][[9]]) +  ##alfa0
-                                      sqrt(garch_coefs[[i]][[j]][[5]]) * e_f_t2_t1[2] + ##alfa1 * e_t-1
-                                      sqrt(garch_coefs[[i]][[j]][[6]]) * sigma_f_t1))) ##beta1  * s_t-1
-  }
-}
-return(ret_sim)
-
-#simulated returns matrix
-ret_cop_sim <- function(garch_coefs, zsim, sigma_per, resid_per, returns, i, nsim){
-  ret_sim <- matrix(0, nrow = nsim, ncol = 8)    
-  #getting real returns we'll use in one-step forward armaGarch's AR forecasting
-  RZ <- returns[i:(1259+i),2:9] 
-  for(j in 1:N){   #K scenarios generation for each asset
-    sigma_f_t1 <- tail(sigma_per[[j]],1) ##(t-1) sigma for GARCH forecasting
-    e_f_t2_t1 <- tail(resid_per[[j]],2) ##(t-2, t-1) residuals for MA forecasting
-    for(z in 1:nsim){
-      ret_sim[z,j] = ((garch_coefs[[i]][[j]][[1]] * RZ[1260,j]) + (garch_coefs[[i]][[j]][[2]] * RZ[1259,j]) +  #AR1 * R_t-1, AR2 * R_t-2
-                        (garch_coefs[[i]][[j]][[3]] * e_f_t2_t1[1]) + (garch_coefs[[i]][[j]][[4]] * e_f_t2_t1[2]) +  #MA1*e_t-1, MA2*e_t-2
-                        (zsim[z,j] * (sqrt(garch_coefs[[i]][[j]][[9]]) +  ##alfa0
-                                        sqrt(garch_coefs[[i]][[j]][[5]]) * e_f_t2_t1[2] + ##alfa1 * e_t-1
-                                        sqrt(garch_coefs[[i]][[j]][[6]]) * sigma_f_t1))) ##beta1  * s_t-1
-    }
-  }
-  return(ret_sim)
-}
 
 cop_portf_opt <- function(targetReturn, filename, nsim, type){
   cop_pars <- readRDS("copulaParams.Rds") #reading copula parameters
@@ -292,4 +198,4 @@ cop_portf_opt <- function(targetReturn, filename, nsim, type){
   }
   saveRDS(cvar_opt, file = filename) ##saving weights data, we repeat this for 0,3,6 and 9%
 }
-})
+}
