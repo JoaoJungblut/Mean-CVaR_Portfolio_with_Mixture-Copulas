@@ -4,6 +4,7 @@ library(rugarch)
 library(fGarch)
 library(copula)
 library(Rsolnp)
+library(fPortfolio)
 
 # TRANSFORMAR UNIF_DIST EM MATRIZ PARA RODAR NO FORLOOP INICIAL ASSIM COMO COP_PARAM
 
@@ -67,9 +68,18 @@ eqfun <- function(params, U, copC, copG, copt){
   return(z)
 }
 
+#####setting up a fGarch min CVaR optimization
+cvar_opt <- matrix(nrow = length(index_vector) - 1, ncol=N)
+targetReturn <- 0
+frontierSpec <- portfolioSpec() 
+setType(frontierSpec) <- "CVaR"  
+setSolver(frontierSpec) <- "solveRglpk.CVAR"  #solving as a linear program as Rockafellar & Uryasev (2000)
+setAlpha(frontierSpec) <- 0.05   #CVaR_0.95  
+setTargetReturn(frontierSpec) <- targetReturn  #daily target return constraint
+
 
 # iterating over n assets
-for (i in 2:length(index_vector)) {
+for (i in 2:length(index_vector)){
   
   # Matrix to save sigma forecasts
   unif_dist <- garch_pred <- sigma <- residuals <- matrix(nrow = K, ncol = N)
@@ -128,6 +138,7 @@ for (i in 2:length(index_vector)) {
   #for each asset, generate copula 'z' dependence structure 
   rtn_pred <- mean_pred <- sigma_pred <- zsim <- matrix(nrow = K, ncol = N) 
   for(j in 1:N){  
+    
     zsim[,j] <- qsstd(ctg[,j], 
                       nu = garch_coef[[j]][6], 
                       xi = garch_coef[[j]][5]) / 
@@ -145,57 +156,22 @@ for (i in 2:length(index_vector)) {
     
     for(t in 2:K){
       sigma_pred[t, j] <- sqrt(garch_coef[[j]][7] + #omega
-                                 garch_coef[[j]][2]*(rtn_pred[(t-1), j])^2 + #alpha1
-                                 garch_coef[[j]][3]*(sigma_pred[(t-1), j])^2) #beta1
+                                 garch_coef[[j]][3]*(rtn_pred[(t-1), j])^2 + #alpha1
+                                 garch_coef[[j]][4]*(sigma_pred[(t-1), j])^2) #beta1
       mean_pred[t, j] <- garch_coef[[j]][1] + garch_coef[[j]][2]*rtn_pred[(t-1), j] #mu e ar1
       rtn_pred[t, j] <- mean_pred[t, j] + sigma_pred[t, j]*zsim[t,j]
     }
-    
   }
+
+  ##optimizing portfolio using K simulated return for each assets, for optimization period i 
+  retornofPort <- as.timeSeries(rtn_pred[, 1:N])
+  frontier1g <- efficientPortfolio(data = retornofPort, 
+                                   spec = frontierSpec, 
+                                   constraints = "LongOnly")
+  cvar_opt[(i-1),1:N] <- getWeights(frontier1g)   #storing resulting weights
  
   
 }
 
 
 
-cop_portf_opt <- function(targetReturn, filename, nsim, type){
-  cop_pars <- readRDS("copulaParams.Rds") #reading copula parameters
-  garch_coefs <- readRDS("coef.Rds") #reading ArmaGarch parameters
-  #arma_order <- readRDS("armaOrder.Rds")
-  sigma_fit <- readRDS("sigma.Rds") #reading armaGarch sigma. We need this to estimate J one-steap ahead returns 
-  residual_fit <- readRDS("residuos.Rds")  #reading armaGach fitted residuals 
-  
-  #####setting up a fGarch min CVaR optimization
-  frontierSpec <- portfolioSpec() 
-  setType(frontierSpec) <- "CVaR"  
-  setSolver(frontierSpec) <- "solveRglpk.CVAR"  #solving as a linear program as Rockafellar & Uryasev (2000)
-  setAlpha(frontierSpec) <- 0.05   #CVaR_0.95  
-  setTargetReturn(frontierSpec) <- targetReturn  #daily target return constrain, we do this for 0, 0.00012, 0.00024 and 0.00036
-  
-  ####initializing returns and weights matrixes
-  ret_sim <- matrix(0, nrow = nsim, ncol = 8) #initializaing sim.ret matrix
-  cvar_opt <- matrix(0, nrow = 4550, ncol = 8) #initializing optimized portfolio weights matrix
-  
-  for(i in 1:length(sigma_fit)){  #we do everything for each optimization
-    ##generating copula variates 
-    if(type == 'mixture'){         #if we want mixture of copula, type should be 'mixture'
-      cop_sim <- mix_cop_sim(cop_pars, i, nsim)
-    } else if(type == 'gaussian'){ #else, 'gaussian'
-      cop_sim <- gauss_cop_sim(cop_pars, i, nsim)
-    }
-    ##generating zsim 
-    zsim <- z_cop_sim(garch_coefs, cop_sim, i, nsim)
-    #sigma_per <- sigma_fit[[i]]  #getting fitted sigma and residuals we'll use in MA and Garch's forecasting
-    #resid_per <- residual_fit[[i]] 
-    
-    ##K return scenarios generation, using z and armaGarch
-    ret_sim <- ret_cop_sim(garch_coefs, zsim, sigma_fit[[i]], residual_fit[[i]], returns, i, nsim)
-    
-    ##optimizing portfolio using K simulated return for each assets, for optimization period i 
-    retornofPort <- as.timeSeries(ret_sim[, 1:8])
-    frontier1g <- fPortfolio::efficientPortfolio(data = retornofPort, spec = frontierSpec, constraints = "LongOnly")
-    cvar_opt[i,1:8] <- fPortfolio::getWeights(frontier1g)   #storing resulting weights   
-  }
-  saveRDS(cvar_opt, file = filename) ##saving weights data, we repeat this for 0,3,6 and 9%
-}
-}
