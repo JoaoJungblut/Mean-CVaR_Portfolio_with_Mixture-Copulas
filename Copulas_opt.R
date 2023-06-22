@@ -10,7 +10,10 @@ library(fPortfolio)
 
 # importing data and calculating returns
 returns <- tq_get(c("PETR4.SA", "VALE3.SA", "ITUB4.SA",
-                    "BBAS3.SA", "ABEV3.SA"), 
+                    "BBAS3.SA", "ABEV3.SA", "BBDC4.SA",
+                    "GRND3.SA", "SMTO3.SA", "SLCE3.SA",
+                    "VIVT3.SA", "B3SA3.SA", "UNIP6.SA",
+                    "ELET6.SA", "MRFG3.SA", "BRKM5.SA"), 
                   from="1997-01-01") %>% 
   select(date, symbol, adjusted) %>% 
   group_by(symbol) %>% 
@@ -25,7 +28,8 @@ N <- ncol(returns)-1
 K <- 252
 index_vector <- seq(1, nrow(returns), by=K)
 names_vector <- names(returns)[-1]
-cop_param <- unif_dist <- garch_pred <- garch_coef <- sigma <- residuals <- vector("list", length(index_vector)-1)
+portfolio_daily_returns <- matrix(nrow = nrow(returns), ncol = 1)
+portfolio_daily_returns[1:K,] <- 0
 mod_garch <- try(ugarchspec(variance.model = list(model = "sGARCH",
                                                   garch.order = c(1, 1),
                                                   variance.targeting = TRUE),
@@ -85,10 +89,10 @@ for (i in 2:length(index_vector)){
   unif_dist <- garch_pred <- sigma <- residuals <- matrix(nrow = K, ncol = N)
   garch_coef <- vector("list", length = N)
   
+  t1 <- index_vector[i-1]
+  t2 <- index_vector[i]-1
+  
   for (j in 1:length(names_vector)) {
-    t1 <- index_vector[i-1]
-    t2 <- index_vector[i]-1
-    
     x <- cbind(returns[t1:t2,(j+1)])
     
     garch_fit <- try(ugarchfit(mod_garch, data = x, solver = "hybrid"), 
@@ -170,8 +174,24 @@ for (i in 2:length(index_vector)){
                                    constraints = "LongOnly")
   cvar_opt[(i-1),1:N] <- getWeights(frontier1g)   #storing resulting weights
  
-  
+  # Calculate portfolio returns
+  portfolio_returns <- as.matrix(returns[(t1+K):(t2+K), names_vector]) %*% t(cvar_opt[(-1),])
+  portfolio_daily_returns[(t1+K):(t2+K),] <- rowSums(portfolio_returns)
+
 }
 
 
+
+library(ggplot2)
+
+# Calcular os retornos acumulados
+portfolio_cumulative_returns <- cumsum(portfolio_daily_returns)
+
+# Criar um data frame com os retornos acumulados
+df <- data.frame(date = returns$date, cumulative_returns = portfolio_cumulative_returns)
+
+# Criar o gráfico de linha dos retornos acumulados
+ggplot(data = df, aes(x = date, y = cumulative_returns)) +
+  geom_line() +
+  labs(x = "Data", y = "Retornos Acumulados", title = "Retornos Acumulados do Portfólio")
 
