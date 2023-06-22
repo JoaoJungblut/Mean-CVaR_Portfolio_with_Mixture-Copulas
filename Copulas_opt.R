@@ -1,4 +1,4 @@
-llibrary(tidyverse)
+library(tidyverse)
 library(tidyquant)
 library(rugarch)
 library(fGarch)
@@ -22,7 +22,7 @@ returns <- tq_get(c("PETR4.SA", "VALE3.SA", "ITUB4.SA",
 # creating auxiliary matrices and list
 N <- ncol(returns)-1
 K <- 252
-index_vector <- seq(1, nrow(returns), by=252)
+index_vector <- seq(1, nrow(returns), by=K)
 names_vector <- names(returns)[-1]
 cop_param <- unif_dist <- garch_pred <- garch_coef <- sigma <- residuals <- vector("list", length(index_vector)-1)
 mod_garch <- try(ugarchspec(variance.model = list(model = "sGARCH",
@@ -40,6 +40,9 @@ copG <- gumbelCopula(2, dim = N)  # theta= 2
 #lower and upper bounds of the parameters and weights for bounded non linear opt.
 lower <- c(0.1, 1, -0.9,(2+.Machine$double.eps), 0,0,0)     
 upper <- c(copC@param.upbnd, copG@param.upbnd, 1,100, 1,1,1) #2+eps so that variance of t copula is defined
+
+#initial guesses for weights = 1/3 each
+par6 <- par5 <- par4 <- 1/3 
 
 #negative log likelihood function for estimating copula weights and parameters
 LLCG <- function(params, U, copC, copG, copt){ 
@@ -94,6 +97,76 @@ for (i in 2:length(index_vector)) {
   }
 }
 
+# iterating over n assets
+for (i in 2:length(index_vector)) {
+  
+  # Matrix to save sigma forecasts
+  unif_dist <- garch_pred <- sigma <- residuals <- matrix(nrow = K, ncol = N)
+  garch_coef <- vector("list", length = N)
+  
+  for (j in 1:length(names_vector)) {
+    t1 <- index_vector[i-1]
+    t2 <- index_vector[i]-1
+    
+    x <- cbind(returns[t1:t2,(j+1)])
+    
+    garch_fit <- try(ugarchfit(mod_garch, data = x, solver = "hybrid"), 
+                     silent = TRUE)
+    
+    residuals[,j] <- garch_fit@fit$residuals
+    sigma[,j] <- garch_fit@fit$sigma
+    garch_coef[[j]] <- garch_fit@fit$coef
+    unif_dist[,j] <- psstd(q = residuals[,j]/sigma[,j],
+                           nu = garch_coef[[j]][6],
+                           xi = garch_coef[[j]][5])
+  }
+  
+  ##Creating elliptical copula objects and estimating "initial guesses" for each copula parameter. 
+  #Then, we maximize loglikelihood of the linear combination of the three copulas
+  par1 <- fitCopula(copC, unif_dist, "itau", estimate.variance = T)@estimate #inversion of Kendall's tau for Clayton 
+  par2 <- fitCopula(copG, unif_dist,"itau", estimate.variance = T)@estimate #inversion of Kendall's tau for Gumbel 
+  par3 <- fitCopula(copt, unif_dist,"mpl", estimate.variance = F)@estimate ###mpl para poder estimar tambem DF. Na documentacao diz que nao pode usar 'itau' pois ele n estima DF.
+  
+  ##non linear constrained optimization (RSOLNP)
+  opt <- solnp(pars = c(par1,par2,par3,par4,par5,par6), 
+               fun = LLCG, LB = lower, UB = upper, 
+               copt=copt,copC = copC, copG = copG, 
+               U=unif_dist,eqfun = eqfun, eqB=c(1)) ####RSOLNP
+  
+  ##saving optimization parameters in a list
+  cop_param <-opt$pars
+  
+  #clayton, t, gumbel and ctg variates matrix
+  ctg <- Cc <- Cg <- Ct <- matrix(nrow = K, ncol = N)
+  
+  ##generating copula variates
+  Cc[,]<- cop_param[5]*rCopula(n = K, 
+                               copula = claytonCopula(param = cop_param[1], 
+                                                      dim = N))   
+  Cg[,]<- cop_param[6]*rCopula(n = K, 
+                               copula = gumbelCopula(param = cop_param[2], 
+                                                     dim = N))
+  Ct[,]<- cop_param[7]*rCopula(n = K, 
+                               copula = tCopula(param = cop_param[3], 
+                                                df = cop_param[4], 
+                                                dim = N))
+  
+  #linear combination of them
+  ctg <- Cc + Ct + Cg 
+  
+  #for each asset, generate copula 'z' dependence strucutre 
+  zsim <- matrix(nrow = K, ncol = N) 
+  for(j in 1:N){  
+    zsim[,j] <- qsstd(ctg[,j], 
+                      nu = garch_coef[[j]][[6]], 
+                      xi = garch_coef[[j]][[5]]) / 
+      sd(qsstd(ctg[,j], nu = garch_coef[[j]][[6]], 
+               xi = garch_coef[[j]][[5]])) 
+  }
+ 
+  
+}
+
 ret_sim[z,j] = ((garch_coefs[[i]][[j]][[1]] * RZ[1260,j]) + (garch_coefs[[i]][[j]][[2]] * RZ[1259,j]) +  #AR1 * R_t-1, AR2 * R_t-2
                   (garch_coefs[[i]][[j]][[3]] * e_f_t2_t1[1]) + (garch_coefs[[i]][[j]][[4]] * e_f_t2_t1[2]) +  #MA1*e_t-1, MA2*e_t-2
                   (zsim[z,j] * (sqrt(garch_coefs[[i]][[j]][[9]]) +  ##alfa0
@@ -101,29 +174,6 @@ ret_sim[z,j] = ((garch_coefs[[i]][[j]][[1]] * RZ[1260,j]) + (garch_coefs[[i]][[j
                                   sqrt(garch_coefs[[i]][[j]][[6]]) * sigma_f_t1))) ##beta1  * s_t-1
 
 
-for(i in 1:length(unif_dist)){ 
-  ##pseudo-uniform [0,1] observations for each asset
-  v<-as.matrix(do.call(cbind, unif_dist[[i]]))
-  U<-v[,1:(N)]  
-  
-  ##Creating elliptical copula objects and estimating "initial guesses" for each copula parameter. 
-  #Then, we maximize loglikelihood of the linear combination of the three copulas
-  par1 <- fitCopula(copC, U, "itau", estimate.variance = T)@estimate #inversion of Kendall's tau for Clayton 
-  par2 <- fitCopula(copG, U,"itau", estimate.variance = T)@estimate #inversion of Kendall's tau for Gumbel 
-  par3 <- fitCopula(copt, U,"mpl", estimate.variance = F)@estimate ###mpl para poder estimar tambem DF. Na documentacao diz que nao pode usar 'itau' pois ele n estima DF.
-  par4 <- 1/3 #initial guesses for weights = 1/3 each
-  par5 <- 1/3
-  par6 <- 1/3
-  
-  ##non linear constrained optimization (RSOLNP)
-  opt <- solnp(pars = c(par1,par2,par3,par4,par5,par6), 
-               fun = LLCG, LB = lower, UB = upper, 
-               copt=copt,copC = copC, copG = copG, 
-               U=U,eqfun = eqfun, eqB=c(1)) ####RSOLNP
-  
-  ##saving optimization parameters in a list
-  cop_param[[i]]<-opt$pars  
-}
 
 
 for(i in 1:(length(ymd_vector)-1)){
