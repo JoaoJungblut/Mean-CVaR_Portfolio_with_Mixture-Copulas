@@ -85,7 +85,6 @@ eqfun <- function(params, U, copC, copG, copt){
 ##### Setting up a fPortfolio min CVaR optimization
 cvar_opt <- matrix(nrow = length(index_vector) - 1, ncol = N)  # Matrix to store CVaR optimization results
 targetReturn <- 0  # Daily target return constraint
-targetReturn <- 0  # Daily target return constraint
 frontierSpec <- fPortfolio::portfolioSpec()  # Portfolio specification for optimization
 fPortfolio::setType(frontierSpec) <- "CVaR"  # Set portfolio type as CVaR
 fPortfolio::setSolver(frontierSpec) <- "solveRglpk.CVAR"  # Use linear programming solver for CVaR optimization
@@ -186,8 +185,8 @@ for (i in 2:length(index_vector)) {
   }
   
   ## Optimizing portfolio using K simulated returns for each asset, for optimization period i
-  retornfPort <- as.timeSeries(rtn_pred[, 1:N])
-  frontier1g <- fPortfolio::efficientPortfolio(data = retornfPort,
+  returnfPort <- as.timeSeries(rtn_pred[, 1:N])
+  frontier1g <- fPortfolio::efficientPortfolio(data = returnfPort,
                                                spec = frontierSpec,
                                                constraints = "LongOnly")
   cvar_opt[(i - 1), 1:N] <- fPortfolio::getWeights(frontier1g)  # Storing resulting weights
@@ -199,4 +198,29 @@ for (i in 2:length(index_vector)) {
   portfolio_daily_returns[t1:t2, ] <- rowSums(portfolio_returns)
   
 }
+
+
+library(fPortfolio)
+
+# Dados de retorno dos ativos
+data <- as.timeSeries(returns)
+
+# Definindo os parâmetros da otimização
+nAssets <- ncol(data)
+spec <- portfolioSpec()
+
+# Criando o objeto de restrições
+constraints <- portfolioConstraints()
+
+# Definindo a restrição de cardinalidade
+ncardConstraints(constraints, min.card = 3, max.card = 5)
+
+# Realizando a otimização do portfólio
+opt_portfolio <- portfolioFrontier(data, spec, constraints = constraints)
+
+# Extraindo os pesos dos ativos no portfólio otimizado
+weights <- getWeights(opt_portfolio)
+
+# Visualizando a alocação de pesos
+print(weights)
 
