@@ -1,0 +1,124 @@
+#################################################################################
+# Main file to run worst-case CVaR portfolio optimization based mixture copulas #
+# Authors: Joao Ramos Jungblut ##################################################
+# Last update: 2023-06-27 #######################################################
+#################################################################################
+
+# setting R project environment
+my_dir <- dirname(rstudioapi::getActiveDocumentContext()$path)
+setwd(my_dir)
+
+# cleaning variables and graphs
+rm(list=ls())
+graphics.off()
+
+# Load required packages
+library(tidyverse)     # Data manipulation and visualization
+library(tidyquant)     # Financial data analysis
+library(rugarch)       # Univariate GARCH modeling
+library(fGarch)        # Multivariate GARCH modeling
+library(copula)        # Copula modeling
+library(Rsolnp)        # Nonlinear optimization
+library(fPortfolio)    # Portfolio optimization
+library(PerformanceAnalytics) # Performance metrics
+library(xts) # Time series object
+
+# Importing modules
+source("data_preprocessing.R")
+source("garch_estimate.R")
+source("copula_estimate.R")
+source("portfolio_optimization.R")
+source("performance_metrics.R")
+
+# Define the list of stock tickers and the start date for data retrieval
+tickers <- c("PETR4.SA", "VALE3.SA", "ITUB4.SA", "BBAS3.SA", "ABEV3.SA", 
+             "BBDC4.SA", "GRND3.SA", "SMTO3.SA", "SLCE3.SA", "VIVT3.SA", 
+             "B3SA3.SA", "UNIP6.SA", "ELET6.SA", "MRFG3.SA", "BRKM5.SA",
+             "KLBN11.SA", "SUZB3.SA", "ITSA4.SA", "MRVE3.SA", "BBSE3.SA",
+             "TAEE11.SA", "TIMS3.SA", "AMER3.SA", "ALPA4.SA", "GGBR4.SA")
+start_date <- "2000-01-01"
+
+# Retrieve the stock returns for the given tickers and start date
+returns <- GetReturns(tickers = tickers, start_date = start_date)
+
+# Creating auxiliary matrices and list
+N <- base::ncol(returns) - 1   # Number of assets
+K <- 252                 # Window size for GARCH estimation
+index_vector <- seq(1, nrow(returns), by = K)  # Index vector for rolling optimization
+names_vector <- names(returns)[-1]   # Asset names for reference
+weights <- matrix(nrow = length(index_vector), ncol = N) # Create a matrix to store the weights for each asset in the portfolio
+colnames(weights) <- names_vector # Set the column names of the weights matrix as the asset names
+weights[1,] <-  0 # Initialize the first row of the weights matrix as all zeros
+portfolio_returns <- matrix(nrow = nrow(returns), ncol = 1)  # Matrix to store portfolio returns
+portfolio_returns[1:K, ] <- 0  # Initialize the first K rows as zero
+
+for (i in 2:length(index_vector)){
+  
+  # Establishing window interval in-sample
+  t1 <- index_vector[i - 1]
+  t2 <- index_vector[i] - 1
+  
+  # Convert the in-sample returns data to a matrix format
+  ret_matrix_insample <- as.matrix(returns[t1:t2, -1])
+  
+  # Create a logical vector indicating if each asset has sufficient data
+  assets_with_valid_returns <- colMeans(ret_matrix_insample[1:50,]) != 0 
+  
+  # Subset the returns matrix and asset names based on assets with sufficient data
+  ret_matrix_insample <- ret_matrix_insample[, assets_with_valid_returns]
+  
+  # Fit the GARCH model to the returns data
+  fit_garch <- FitGarch(returns = ret_matrix_insample)
+  
+  # Optimize the mixture of copulas using the uniform distribution from the GARCH model
+  copulas_mixture <- OptMixtureCopulas(unif_dist = fit_garch$unif_dist)
+  
+  # Compute simulated standardized residuals using the optimized copula mixture and GARCH coefficients
+  zsim <- ComputeZSim(copula_mixture = copulas_mixture, garch_coef = fit_garch$garch_coef)
+  
+  # Predict future returns using the GARCH model, simulated residuals, and volatility estimates
+  ret_pred <- PredictGarch(returns = ret_matrix_insample, 
+                           sigma = fit_garch$sigma,
+                           zsim = zsim,
+                           garch_coef = fit_garch$garch_coef)$ret_pred
+  
+  # Perform CVaR optimization to determine the optimal portfolio weights
+  weights[i, names_vector[assets_with_valid_returns]] <- CVaROptimization(returns = ret_pred)
+  weights[i, names_vector[!assets_with_valid_returns]] <- 0
+  
+  # Establishing window interval in-sample
+  t3 <- t1 + K
+  t4 <- min(nrow(returns), t2+K)
+  
+  # Convert the realized returns data to a matrix format
+  ret_matrix_outofsample <- as.matrix(returns[t3:t4, -1])
+  
+  # Calculate the portfolio returns based on the optimal weights
+  portfolio_returns[t3:t4,] <- RetPortfolio(returns = ret_matrix_outofsample, 
+                                            weights = rbind(weights[i,]))
+}
+
+
+# Convert the portfolio_returns matrix to an xts object
+portfolio_returns_xts <- xts::xts(portfolio_returns, order.by = returns$date)
+
+# Calculate Sharpe ratio
+sharpe_ratio <- PerformanceAnalytics::SharpeRatio.annualized(portfolio_returns_xts)
+
+# Calculate annualized return
+annualized_return <- PerformanceAnalytics::Return.annualized(portfolio_returns_xts)
+
+# Calculate cumulative return
+cumulative_return <- PerformanceAnalytics::Return.cumulative(portfolio_returns_xts)
+
+# Calculate drawdowns
+drawdown <- PerformanceAnalytics::maxDrawdown(portfolio_returns_xts)
+
+# Print the calculated metrics
+print(sharpe_ratio)
+print(annualized_return)
+print(cumulative_return)
+print(drawdown)
+
+# Generate graph
+PerformanceAnalytics::charts.PerformanceSummary(portfolio_returns_xts)
