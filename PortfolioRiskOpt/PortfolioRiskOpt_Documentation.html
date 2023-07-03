@@ -408,11 +408,37 @@ source(&quot;copula_estimate.R&quot;)
 source(&quot;portfolio_optimization.R&quot;)
 source(&quot;performance_metrics.R&quot;)</code></pre>
 <p>Here’s a breakdown of what each module might do:</p>
-<div id="data_preprocessing.r" class="section level3">
-<h3>data_preprocessing.R</h3>
-<p>The module <code>data_preprocessing</code> defines a function that
-imports financial data for a set of tickers and calculates their
-returns.</p>
+<div id="data_processing.r" class="section level2">
+<h2><code>data_processing.R</code></h2>
+<p>The <code>data_processing.R</code> module contains functions for
+preprocessing data, specifically the <code>GetReturns</code> function.
+Let’s explain this function in detail:</p>
+<div id="getreturnstickers-start_date" class="section level3">
+<h3><code>GetReturns(tickers, start_date)</code></h3>
+<p>This function retrieves and calculates the returns for a given set of
+tickers from a specified start date.</p>
+<div id="parameters" class="section level4">
+<h4>Parameters:</h4>
+<ul>
+<li><code>tickers</code>: A character vector of ticker symbols
+representing the assets.</li>
+<li><code>start_date</code>: A character or Date object specifying the
+start date of the data retrieval.</li>
+</ul>
+</div>
+<div id="description" class="section level4">
+<h4>Description:</h4>
+<p>The function uses the <code>tq_get</code> function from the
+<code>tidyquant</code> package to retrieve the historical stock prices
+for the given tickers from the specified start date. It selects the
+columns “date”, “symbol”, and “adjusted” from the retrieved data. Then,
+it groups the data by symbol and calculates the logarithmic returns for
+each symbol using the <code>mutate</code> and <code>lag</code> functions
+from the <code>dplyr</code> package. The function removes the “adjusted”
+column and spreads the data to have columns for each symbol, with the
+corresponding returns. It replaces any missing values in the data with
+zeros using the <code>replace</code> function. Finally, it returns the
+processed data.</p>
 <pre class="r"><code>GetReturns &lt;- function(tickers, start_date) {
   data &lt;- tidyquant::tq_get(tickers, from = start_date) %&gt;% 
     dplyr::select(&quot;date&quot;, &quot;symbol&quot;, &quot;adjusted&quot;) %&gt;%
@@ -424,51 +450,39 @@ returns.</p>
     dplyr::mutate(dplyr::across(where(is.numeric), ~replace(., is.na(.), 0)))
   
   return(data)
-
 }</code></pre>
-<div id="getreturns" class="section level5">
-<h5>GetReturns</h5>
+<p>Please note that the documentation assumes the availability of
+necessary packages and objects (e.g., <code>tidyquant</code>,
+<code>dplyr</code>, <code>tidyr</code>) and their proper loading prior
+to using these functions.</p>
+</div>
+</div>
+</div>
+<div id="garch_estimate.r" class="section level2">
+<h2><code>garch_estimate.R</code></h2>
+<p>The <code>garch_estimate.R</code> module contains functions for
+estimating GARCH models and predicting future values based on the
+estimated models. Let’s explain each function in detail:</p>
+<div id="fitgarchreturns" class="section level3">
+<h3><code>FitGarch(returns)</code></h3>
+<p>This function fits a GARCH model to a given set of returns.</p>
+<div id="parameters-1" class="section level4">
+<h4>Parameters:</h4>
 <ul>
-<li>The function <strong>GetReturns</strong> takes two arguments:
-<em>tickers</em>, which is a character vector specifying the tickers or
-symbols of the financial assets to fetch data for, and
-<em>start_date</em>, which is the date from which to start fetching the
-data. Inside the function, the following steps are performed:</li>
+<li><code>returns</code>: A matrix or data frame containing the
+historical returns of assets.</li>
 </ul>
-<ol style="list-style-type: decimal">
-<li><p>The <strong>‘tidyquant::tq_get()’</strong> function is used to
-fetch the data for the specified tickers from the specified start date.
-The resulting data includes columns for “date”, “symbol”, and “adjusted”
-prices.</p></li>
-<li><p>The <strong>‘dplyr::select()’</strong> function is used to keep
-only the “date”, “symbol”, and “adjusted” columns in the data.</p></li>
-<li><p>The <strong>‘dplyr::group_by()’</strong> function is used to
-group the data by symbol.</p></li>
-<li><p>The <strong>‘dplyr::mutate()’</strong> function is used to create
-a new column called “return”. The return for each day is calculated as
-the log difference between the adjusted price of the current day and the
-adjusted price of the previous day <strong>‘(log(adjusted) -
-log(dplyr::lag(adjusted)))’</strong>.</p></li>
-<li><p>The <strong>‘dplyr::ungroup()’</strong> function is used to
-remove the grouping by symbol.</p></li>
-<li><p>The <strong>‘dplyr::select()’</strong> function is used again to
-remove the “adjusted” column from the data, as it is no longer
-needed.</p></li>
-<li><p>The <strong>‘tidyr::spread()’</strong> function is used to spread
-the data from long to wide format, with each symbol having its own
-column containing the returns.</p></li>
-</ol>
-<p>The <strong>‘dplyr::mutate()’</strong> function is used again to
-replace any missing values in the data (represented as <em>NA</em>) with
-zeros (<em>0</em>).</p>
 </div>
-</div>
-<div id="garch_estimate.r" class="section level3">
-<h3>garch_estimate.R</h3>
-<p>The <strong>‘garch_estimate’</strong> module defines a function that
-fits a Generalized Autoregressive Conditional Heteroskedasticity (GARCH)
-model to a set of returns. Also, it defines a function that uses a
-fitted GARCH model to predict future returns.</p>
+<div id="description-1" class="section level4">
+<h4>Description:</h4>
+<p>The function initializes a GARCH specification using the
+<code>ugarchspec</code> function from the <code>rugarch</code> package.
+It specifies a symmetric GARCH(1,1) model with the “sstd” distribution.
+Then, it loops over each asset in the <code>returns</code> matrix and
+fits a GARCH model using the <code>ugarchfit</code> function. The
+function saves the residuals, sigma forecasts, GARCH coefficients, and
+uniform distribution values for each asset. Finally, it returns a list
+containing the results.</p>
 <pre class="r"><code>FitGarch &lt;- function(returns){
   
   # Initialize the GARCH specification
@@ -507,10 +521,41 @@ fitted GARCH model to predict future returns.</p>
   
   # Return the results
   return(result)
-}
-
-
-PredictGarch &lt;- function(returns, sigma, zsim, garch_coef, n_ahead = 252) {
+}</code></pre>
+</div>
+</div>
+<div id="predictgarchreturns-sigma-zsim-garch_coef-n_ahead-252" class="section level3">
+<h3><code>PredictGarch(returns, sigma, zsim, garch_coef, n_ahead = 252)</code></h3>
+<p>This function predicts future returns and volatility using a fitted
+GARCH model.</p>
+<div id="parameters-2" class="section level4">
+<h4>Parameters:</h4>
+<ul>
+<li><code>returns</code>: A matrix or data frame containing the
+historical returns of assets.</li>
+<li><code>sigma</code>: A matrix containing the historical volatility
+(sigma) forecasts.</li>
+<li><code>zsim</code>: A matrix of standardized residuals generated from
+the mixture of copulas.</li>
+<li><code>garch_coef</code>: A list containing the GARCH coefficients
+for each asset.</li>
+<li><code>n_ahead</code>: The number of periods to predict ahead
+(default is 252, representing one year).</li>
+</ul>
+</div>
+<div id="description-2" class="section level4">
+<h4>Description:</h4>
+<p>The function initializes matrices to store the predicted values for
+returns, mean, and volatility. It then iterates over each asset in the
+<code>returns</code> matrix. For each asset, it first retrieves the last
+observed return and volatility. It then performs forecasting for the
+first period (t = 1) using the GARCH coefficients and the ARMA model.
+Subsequently, it forecasts returns and volatility for periods t &gt; 1
+by iterating over the specified number of periods. The predicted returns
+are calculated based on the mean prediction, volatility prediction, and
+standardized residuals from the mixture of copulas. Finally, the
+function returns a list containing the predicted values.</p>
+<pre class="r"><code>PredictGarch &lt;- function(returns, sigma, zsim, garch_coef, n_ahead = 252) {
   # Initialize matrices to store predicted values
   ret_pred &lt;- mean_pred &lt;- sigma_pred &lt;- matrix(nrow = n_ahead, ncol = ncol(returns))
   
@@ -543,85 +588,569 @@ PredictGarch &lt;- function(returns, sigma, zsim, garch_coef, n_ahead = 252) {
   
   return(result)
 }</code></pre>
-<div id="fitgarch" class="section level5">
-<h5>FitGarch</h5>
+<p>Please note that the documentation assumes the availability of
+necessary packages and objects (e.g., <code>rugarch</code>,
+<code>fGarch</code>) and their proper loading prior to using these
+functions.</p>
+</div>
+</div>
+</div>
+<div id="copula_estimate.r" class="section level2">
+<h2><code>copula_estimate.R</code></h2>
+<p>The <code>copula_estimate.R</code> module contains several functions
+for estimating copula parameters and weights based on GARCH residuals.
+Here’s a detailed explanation of each function:</p>
+<div id="llcgparams-u-copc-copg-copt" class="section level3">
+<h3><code>LLCG(params, U, copC, copG, copt)</code></h3>
+<p>This function calculates the negative log-likelihood of a mixture of
+copulas.</p>
+<div id="parameters-3" class="section level4">
+<h4>Parameters:</h4>
 <ul>
-<li>The <strong><code>FitGarch</code></strong> function takes a matrix
-of <em>‘returns’</em> as input and fits a GARCH model to each asset in
-the returns matrix. Here is an explanation of the steps performed in the
-function:</li>
+<li><code>params</code>: A vector containing the copula parameters and
+weights to be estimated.</li>
+<li><code>U</code>: A matrix of uniform distribution values (generated
+from GARCH residuals).</li>
+<li><code>copC</code>: A Clayton copula object.</li>
+<li><code>copG</code>: A Gumbel copula object.</li>
+<li><code>copt</code>: A t copula object.</li>
 </ul>
-<ol style="list-style-type: decimal">
-<li><p>Initialization: The GARCH model specification is initialized
-using the <strong><code>rugarch::ugarchspec</code></strong> function. It
-specifies a symmetric GARCH(1,1) model with variance targeting, an
-ARMA(1,0) mean model, and a standardized Student’s t
-distribution.</p></li>
-<li><p>Initialization of result matrices: Several matrices are
-initialized to store the model coefficients, standard deviation
-forecasts, residuals, and uniform distribution values. These matrices
-have dimensions based on the number of rows and columns in the input
-returns matrix.</p></li>
-<li><p>Loop over each asset: The function iterates over each column
-(asset) in the returns matrix.</p></li>
-<li><p>Fitting GARCH model: The GARCH model is fitted to the returns of
-the current asset using the <strong><code>ugarchfit</code></strong>
-function. The resulting model object is stored in the variable
-<strong><code>garch_fit</code></strong>. If an error occurs during
-fitting, it is caught and silently ignored.</p></li>
-<li><p>Saving model outputs: The residuals, sigma forecasts, GARCH
-coefficients, and uniform distribution values are extracted from the
-fitted GARCH model and stored in the corresponding matrices for the
-current asset.</p></li>
-<li><p>Creating result list: All the matrices are combined into a list
-named <strong><code>result</code></strong>, which serves as the output
-of the function.</p></li>
-<li><p>Returning the results: The <code>result</code> list is returned
-by the function.</p></li>
-</ol>
 </div>
-<div id="predictgarch" class="section level5">
-<h5>PredictGarch</h5>
+<div id="description-3" class="section level4">
+<h4>Description:</h4>
+<p>The function sets the copula parameters and weights based on the
+input <code>params</code>. It then calculates the log-likelihood of the
+mixture of copulas by evaluating the copula density functions for each
+copula (Clayton, Gumbel, and t) at the given uniform distribution
+values. The log-likelihood values are summed, and the negative sum is
+returned as the final result. In case there are infinite values in the
+log-likelihood, they are replaced with zero to avoid errors.</p>
+<pre class="r"><code># Negative log-likelihood function for estimating copula weights and parameters
+LLCG &lt;- function(params, U, copC, copG, copt){ 
+  # Set copula parameters
+  slot(copC, &quot;parameters&quot;) &lt;- params[1]    # Initial Clayton parameter
+  slot(copG, &quot;parameters&quot;) &lt;- params[2]    # Initial Gumbel parameter 
+  slot(copt, &quot;parameters&quot;) &lt;- params[3:4]  # Initial t parameters (correlation and degrees of freedom)
+  
+  # Set copula weights
+  pi1 &lt;- params[5]  # Weight of Clayton copula
+  pi2 &lt;- params[6]  # Weight of Gumbel copula
+  pi3 &lt;- params[7]  # Weight of t copula
+  
+  # Calculate the log-likelihood function to be optimized
+  opt &lt;- log(pi1 * copula::dCopula(U, copC) + 
+               pi2 * copula::dCopula(U, copG) + 
+               pi3 * copula::dCopula(U, copt))
+  
+  # Handle infinite values in the log-likelihood
+  if(any(is.infinite(opt))){
+    opt[which(is.infinite(opt))] &lt;- 0
+  }
+  
+  # Return the negative sum of the log-likelihood
+  -sum(opt)
+}</code></pre>
+</div>
+</div>
+<div id="eqfunparams-u-copc-copg-copt" class="section level3">
+<h3><code>eqfun(params, U, copC, copG, copt)</code></h3>
+<p>This function ensures that the sum of copula weights is equal to
+1.</p>
+<div id="parameters-4" class="section level4">
+<h4>Parameters:</h4>
 <ul>
-<li>The <strong><code>PredictGarch</code></strong> function takes the
-<em>‘returns’</em> matrix, sigma forecasts, simulated standardized
-residuals (<em><code>zsim</code></em>), GARCH coefficients, and the
-number of periods to forecast (<em><code>n_ahead</code></em>) as inputs.
-It generates predicted values for returns, mean, and sigma for the
-specified number of periods. Here is an explanation of the steps
-performed in the function:</li>
+<li><code>params</code>: A vector containing the copula parameters and
+weights to be estimated.</li>
+<li><code>U</code>: A matrix of uniform distribution values (generated
+from GARCH residuals).</li>
+<li><code>copC</code>: A Clayton copula object.</li>
+<li><code>copG</code>: A Gumbel copula object.</li>
+<li><code>copt</code>: A t copula object.</li>
 </ul>
-<ol style="list-style-type: decimal">
-<li><p>Initialization: Matrices are initialized to store the predicted
-values for returns (<strong><code>ret_pred</code></strong>), mean
-(<strong><code>mean_pred</code></strong>), and sigma
-(<strong><code>sigma_pred</code></strong>). These matrices have
-dimensions based on the specified number of periods and the number of
-columns in the returns matrix.</p></li>
-<li><p>Loop over each asset: The function iterates over each column
-(asset) in the returns matrix.</p></li>
-<li><p>Getting the last observed return and sigma: The last observed
-return and sigma from the input data are extracted for the current
-asset.</p></li>
-<li><p>Forecasting at t = 1: The function calculates the predicted sigma
-and mean at the first forecast period (t = 1) using the GARCH
-coefficients and the last observed return and sigma. It also generates
-the predicted return for t = 1 by adding the product of the predicted
-sigma and the first simulated standardized residual from
-<strong><code>zsim</code></strong> to the predicted mean.</p></li>
-<li><p>Forecasting for t &gt; 1: The function iterates over the
-remaining forecast periods (t &gt; 1) and calculates the predicted
-sigma, mean, and return using the GARCH coefficients and the previously
-predicted values.</p></li>
-<li><p>Creating result list: All the predicted matrices (sigma, mean,
-and return) are combined into a list named
-<strong><code>result</code></strong>.</p></li>
-<li><p>Returning the predicted values: The
-<strong><code>result</code></strong> list is returned by the
-function.</p></li>
-</ol>
+</div>
+<div id="description-4" class="section level4">
+<h4>Description:</h4>
+<p>The function calculates the sum of copula weights by summing the
+values in the <code>params</code> vector that correspond to the copula
+weights. It ensures that the sum is equal to 1 and returns the result.
+This function is used as a constraint in the optimization process to
+maintain the sum of weights.</p>
+<pre class="r"><code># Constrain function to ensure sum(weights) = 1
+eqfun &lt;- function(params, U, copC, copG, copt){ 
+  z &lt;- params[5] + params[6] + params[7]
+  return(z)
+}</code></pre>
 </div>
 </div>
+<div id="optmixturecopulasunif_dist" class="section level3">
+<h3><code>OptMixtureCopulas(unif_dist)</code></h3>
+<p>This function estimates the parameters and weights for a mixture of
+copulas.</p>
+<div id="parameters-5" class="section level4">
+<h4>Parameters:</h4>
+<ul>
+<li><code>unif_dist</code>: A matrix of uniform distribution values
+(generated from GARCH residuals).</li>
+</ul>
+</div>
+<div id="description-5" class="section level4">
+<h4>Description:</h4>
+<p>The function initializes the copula objects (Clayton, Gumbel, and t)
+with initial parameter values. It defines the lower and upper bounds for
+the copula parameters and weights. Then, using the
+<code>fitCopula</code> function, it estimates initial guesses for the
+copula parameters based on the provided uniform distribution values.
+Next, the function initializes the weights for each copula with initial
+guesses. Finally, it performs a non-linear constrained optimization
+using the <code>solnp</code> function from the <code>Rsolnp</code>
+package, optimizing the negative log-likelihood function
+<code>LLCG</code> with the constraint function <code>eqfun</code>. The
+optimized copula parameters and weights are returned as the final
+result.</p>
+<pre class="r"><code>OptMixtureCopulas &lt;- function(unif_dist) {
+  # Initialize copula objects
+  copt &lt;- copula::tCopula(param = 0.5, dim = ncol(unif_dist))  # t-Copula with parameter 0.5
+  copC &lt;- copula::claytonCopula(2, dim = ncol(unif_dist))      # Clayton copula with delta = 2
+  copG &lt;- copula::gumbelCopula(2, dim = ncol(unif_dist))       # Gumbel copula with theta = 2
+  
+  # Define lower and upper bounds for the copula parameters and weights
+  lower &lt;- c(0.1, 1, -0.9, (2 + .Machine$double.eps), 0, 0, 0)
+  upper &lt;- c(copC@param.upbnd, copG@param.upbnd, 1, 100, 1, 1, 1)
+  
+  ## Creating elliptical copula objects and estimating &quot;initial guesses&quot; for each copula parameter.
+  # Then, we maximize loglikelihood of the linear combination of the three copulas
+  par1 &lt;- copula::fitCopula(copC, unif_dist, &quot;itau&quot;, estimate.variance = TRUE)@estimate # Inversion of Kendall&#39;s tau for Clayton
+  par2 &lt;- copula::fitCopula(copG, unif_dist, &quot;itau&quot;, estimate.variance = TRUE)@estimate # Inversion of Kendall&#39;s tau for Gumbel
+  par3 &lt;- copula::fitCopula(copt, unif_dist, &quot;mpl&quot;, estimate.variance = FALSE)@estimate # MPL to estimate Degrees of Freedom (DF)
+  
+  # Initialize weights for copulas (initial guesses = 1/3 each)
+  par6 &lt;- par5 &lt;- par4 &lt;- 1/3
+  
+  ## Non-linear constrained optimization (RSOLNP)
+  opt &lt;- Rsolnp::solnp(pars = c(par1, par2, par3, par4, par5, par6),
+                       fun = LLCG,
+                       LB = lower,
+                       UB = upper,
+                       copt = copt,
+                       copC = copC,
+                       copG = copG,
+                       U = unif_dist,
+                       eqfun = eqfun,
+                       eqB = c(1)) # RSOLNP
+  
+  ## Saving optimization parameters in a list
+  cop_param &lt;- opt$pars
+  
+  # Clayton, t, gumbel, and ctg variates matrix
+  ctg &lt;- Cc &lt;- Cg &lt;- Ct &lt;- matrix(nrow = nrow(unif_dist), ncol = ncol(unif_dist))
+  
+  ## Generating copula variates
+  Cc[, ] &lt;- cop_param[5] * copula::rCopula(n = nrow(unif_dist),
+                                           copula = copula::claytonCopula(param = cop_param[1],
+                                                                          dim = ncol(unif_dist)))
+  Cg[, ] &lt;- cop_param[6] * copula::rCopula(n = nrow(unif_dist),
+                                           copula = copula::gumbelCopula(param = cop_param[2],
+                                                                         dim = ncol(unif_dist)))
+  Ct[, ] &lt;- cop_param[7] * copula::rCopula(n = nrow(unif_dist),
+                                           copula = copula::tCopula(param = cop_param[3],
+                                                                    df = cop_param[4],
+                                                                    dim = ncol(unif_dist)))
+  
+  # Linear combination of copula varieties
+  ctg &lt;- Cc + Ct + Cg
+  
+  # Return the ctg matrix
+  return(ctg)
+}</code></pre>
+</div>
+</div>
+<div id="computezsimcopula_mixture-garch_coef" class="section level3">
+<h3><code>ComputeZSim(copula_mixture, garch_coef)</code></h3>
+<p>This function computes the zsim values for each column of the
+copula_mixture.</p>
+<div id="parameters-6" class="section level4">
+<h4>Parameters:</h4>
+<ul>
+<li><code>copula_mixture</code>: A matrix of copula variates generated
+from the mixture of copulas.</li>
+<li><code>garch_coef</code>: A list of GARCH coefficients for each
+asset.</li>
+</ul>
+</div>
+<div id="description-6" class="section level4">
+<h4>Description:</h4>
+<p>The function iterates over each column of the
+<code>copula_mixture</code> matrix. For each column, it computes the
+zsim values using the <code>qsstd</code> function from the
+<code>fGarch</code> package. The <code>qsstd</code> function takes the
+copula variates.</p>
+<pre class="r"><code>ComputeZSim &lt;- function(copula_mixture, garch_coef) {
+  # Create an empty matrix to store zsim values
+  zsim &lt;- matrix(nrow = nrow(copula_mixture), ncol = ncol(copula_mixture))
+  
+  # Compute zsim values for each column of copula_mixture
+  for (j in 1:ncol(copula_mixture)) {
+    # Compute zsim using qsstd function from fGarch package
+    zsim[, j] &lt;- fGarch::qsstd(copula_mixture[, j],
+                               nu = garch_coef[[j]][6],
+                               xi = garch_coef[[j]][5]) /
+      sd(fGarch::qsstd(copula_mixture[, j], nu = garch_coef[[j]][6],
+                       xi = garch_coef[[j]][5]))
+  }
+  
+  # Return the zsim matrix
+  return(zsim)
+}</code></pre>
+<p>Please note that the documentation assumes the availability of
+necessary packages and objects (e.g., <code>copula</code>,
+<code>Rsolnp</code>,<code>fGarch</code>) and their proper loading prior
+to using these functions.</p>
+</div>
+</div>
+</div>
+<div id="portfolio_optimization.r" class="section level2">
+<h2><code>portfolio_optimization.R</code></h2>
+<p>The <code>portfolio_optimization.R</code> module contains functions
+for portfolio optimization, specifically the
+<code>CVaROptimization</code> and <code>RetPortfolio</code> functions.
+Let’s explain these functions in detail:</p>
+<div id="cvaroptimizationreturns-alpha-0.025-targetreturn-0" class="section level3">
+<h3><code>CVaROptimization(returns, Alpha = 0.025, TargetReturn = 0)</code></h3>
+<p>This function performs portfolio optimization using the Conditional
+Value at Risk (CVaR) approach.</p>
+<div id="parameters-7" class="section level4">
+<h4>Parameters:</h4>
+<ul>
+<li><code>returns</code>: A matrix or data frame containing the
+historical returns of the assets.</li>
+<li><code>Alpha</code>: A numeric value representing the confidence
+level for CVaR. The default value is 0.025, corresponding to a
+CVaR_0.975 (the 97.5th percentile).</li>
+<li><code>TargetReturn</code>: A numeric value representing the desired
+daily target return for the portfolio. The default value is 0,
+indicating no specific target return constraint.</li>
+</ul>
+</div>
+<div id="description-7" class="section level4">
+<h4>Description:</h4>
+<p>The function uses the <code>fPortfolio</code> package to perform
+portfolio optimization. It first creates a portfolio specification
+object using <code>portfolioSpec</code> function from
+<code>fPortfolio</code>. Then, it sets the portfolio type as CVaR, the
+solver as “solveRglpk.CVAR” (a linear programming solver for CVaR
+optimization), the CVaR alpha level as <code>Alpha</code>, and the
+target return constraint as <code>TargetReturn</code>. Next, it converts
+the <code>returns</code> data into a time series object using
+<code>as.timeSeries</code>. Finally, it optimizes the portfolio using
+the efficientPortfolio function from <code>fPortfolio</code>,
+considering the long-only constraint. The resulting weights of the
+optimized portfolio are stored and returned.</p>
+<pre class="r"><code>CVaROptimization &lt;- function(returns, Alpha = 0.025, TargetReturn = 0) {
+  frontierSpec &lt;- fPortfolio::portfolioSpec()  # Portfolio specification for optimization
+  fPortfolio::setType(frontierSpec) &lt;- &quot;CVaR&quot;  # Set portfolio type as CVaR
+  fPortfolio::setSolver(frontierSpec) &lt;- &quot;solveRglpk.CVAR&quot;  # Use linear programming solver for CVaR optimization
+  fPortfolio::setAlpha(frontierSpec) &lt;- Alpha  # Set CVaR alpha level as 0.025 (CVaR_0.975)
+  fPortfolio::setTargetReturn(frontierSpec) &lt;- TargetReturn  # Set the daily target return constraint
+  
+  # Create time series object
+  returnfPort &lt;- as.timeSeries(returns)
+  
+  # Optimizing portfolio using K simulated returns for each asset
+  frontier1g &lt;- fPortfolio::efficientPortfolio(data = returnfPort,
+                                               spec = frontierSpec,
+                                               constraints = &quot;LongOnly&quot;)
+  
+  # Storing resulting weights
+  cvar_opt &lt;- rbind(fPortfolio::getWeights(frontier1g))
+  
+  # Return portfolio weights
+  return(cvar_opt)
+}</code></pre>
+</div>
+</div>
+<div id="retportfolioreturns-weights" class="section level3">
+<h3><code>RetPortfolio(returns, weights)</code></h3>
+<p>This function calculates the returns of a portfolio given the
+historical returns and the portfolio weights.</p>
+<div id="parameters-8" class="section level4">
+<h4>Parameters:</h4>
+<ul>
+<li><code>returns</code>: A matrix or data frame containing the
+historical returns of the assets.</li>
+<li><code>weights</code>: A numeric vector representing the weights of
+the assets in the portfolio.</li>
+</ul>
+</div>
+<div id="description-8" class="section level4">
+<h4>Description:</h4>
+<p>The function takes the matrix of <code>returns</code> and multiplies
+it by the transpose of the <code>weights</code> vector to calculate the
+portfolio returns. The resulting portfolio returns are returned.</p>
+<pre class="r"><code>RetPortfolio &lt;- function(returns, weights){
+  
+  portfolio_returns &lt;- returns %*% t(weights)
+  
+  return(portfolio_returns)
+}</code></pre>
+<p>Please note that the documentation assumes the availability of
+necessary packages and objects (e.g., <code>fPortfolio</code>) and their
+proper loading prior to using these functions.</p>
+</div>
+</div>
+</div>
+</div>
+<div id="importing-data-and-calculating-returns" class="section level1">
+<h1>Importing data and calculating returns</h1>
+<p>The following code snippet demonstrates how to retrieve stock returns
+for a list of tickers and a specific start date.</p>
+<p>The <code>tickers</code> variable is defined as a character vector
+containing the stock tickers of interest. The <code>start_date</code>
+variable represents the desired start date for data retrieval.</p>
+<p>The code then calls the <code>GetReturns</code> function, passing the
+<code>tickers</code> and <code>start_date</code> as arguments. The
+function retrieves the stock returns for the specified tickers and start
+date, storing the result in the <code>returns</code> variable.</p>
+<p>Please note that the <code>GetReturns</code> function is assumed to
+be imported from <code>data_preprocessing.R</code> module.</p>
+<pre class="r"><code># Define the list of stock tickers and the start date for data retrieval
+tickers &lt;- c(&quot;PETR4.SA&quot;, &quot;VALE3.SA&quot;, &quot;ITUB4.SA&quot;, &quot;BBAS3.SA&quot;, &quot;ABEV3.SA&quot;, 
+             &quot;BBDC4.SA&quot;, &quot;GRND3.SA&quot;, &quot;SMTO3.SA&quot;, &quot;SLCE3.SA&quot;, &quot;VIVT3.SA&quot;)
+start_date &lt;- &quot;2000-01-01&quot;
+
+# Retrieve the stock returns for the given tickers and start date
+returns &lt;- GetReturns(tickers = tickers, start_date = start_date)
+head(returns)</code></pre>
+<pre><code>## # A tibble: 6 × 11
+##   date       ABEV3.SA BBAS3.SA BBDC4.SA GRND3…¹ ITUB4…² PETR4.SA SLCE3…³ SMTO3…⁴
+##   &lt;date&gt;        &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+## 1 2000-01-03   0        0             0       0       0  0             0       0
+## 2 2000-01-04   0       -0.0487        0       0       0 -0.0569        0       0
+## 3 2000-01-05   0        0.0102        0       0       0 -0.0101        0       0
+## 4 2000-01-06  -0.0520   0.0138        0       0       0 -0.00346       0       0
+## 5 2000-01-07   0       -0.0228        0       0       0  0.00456       0       0
+## 6 2000-01-10   0        0.0535        0       0       0  0.0203        0       0
+## # … with 2 more variables: VALE3.SA &lt;dbl&gt;, VIVT3.SA &lt;dbl&gt;, and abbreviated
+## #   variable names ¹​GRND3.SA, ²​ITUB4.SA, ³​SLCE3.SA, ⁴​SMTO3.SA</code></pre>
+</div>
+<div id="creating-auxiliary-matrices-and-list" class="section level1">
+<h1>Creating auxiliary matrices and list</h1>
+<ul>
+<li><p><code>N</code> is assigned the value of the number of columns in
+the <code>returns</code> matrix minus one, representing the number of
+assets in the portfolio.</p></li>
+<li><p><code>K</code> is assigned the value of 252, which denotes the
+window size for GARCH estimation. This indicates that the code will
+perform calculations using a rolling window of 252
+observations.</p></li>
+<li><p><code>index_vector</code> is created using the <code>seq()</code>
+function. It generates a vector ranging from 1 to the number of rows in
+the <code>returns</code> matrix, with an increment of K. This vector
+serves as an index for rolling optimization.</p></li>
+<li><p><code>names_vector</code> is assigned the names of the columns in
+the <code>returns</code> matrix, excluding the first column. It provides
+a reference for the asset names.</p></li>
+<li><p><code>weights</code> is initialized as a matrix with the same
+number of rows as the <code>index_vector</code> vector and with the same
+number of columns as the <code>returns</code> matrix. It is used to
+store the portfolio weights for each asset.</p></li>
+<li><p><code>portfolio_returns</code> is initialized as a matrix with
+the same number of rows as the <code>index_vector</code> matrix and one
+column. It is used to store the portfolio returns.</p></li>
+<li><p>The first K rows of <code>portfolio_returns</code> are set to
+zero, initializing them as zero. This step is likely performed to
+indicate that the calculations for portfolio returns will start from the
+K+1 row forwards.</p></li>
+</ul>
+<pre class="r"><code># Creating auxiliary matrices and list
+N &lt;- base::ncol(returns) - 1   # Number of assets
+K &lt;- 252                 # Window size for GARCH estimation
+index_vector &lt;- seq(1, nrow(returns), by = K)  # Index vector for rolling optimization
+names_vector &lt;- names(returns)[-1]   # Asset names for reference
+weights &lt;- matrix(nrow = length(index_vector), ncol = N) # Create a matrix to store the weights for each asset in the portfolio
+colnames(weights) &lt;- names_vector # Set the column names of the weights matrix as the asset names
+weights[1,] &lt;-  0 # Initialize the first row of the weights matrix as all zeros
+portfolio_returns &lt;- matrix(nrow = nrow(returns), ncol = 1)  # Matrix to store portfolio returns
+portfolio_returns[1:K, ] &lt;- 0  # Initialize the first K rows as zero</code></pre>
+</div>
+<div id="iterating-over-n-assets" class="section level1">
+<h1>Iterating over n assets</h1>
+<p>The code snippet performs an iteration over a set of assets to
+optimize the portfolio using copula-based simulations.</p>
+<ul>
+<li><p>A series of matrices and lists are initialized to store the
+forecasts and optimization results.</p></li>
+<li><p>The iteration starts from the second index of the
+<code>index_vector</code> and loops through each asset.</p></li>
+<li><p>Within the loop, several calculations are performed for each
+asset:</p>
+<ul>
+<li><p><em><code>ret_matrix_insample</code></em>: A subset of returns
+data for the specific asset is extracted.</p></li>
+<li><p><em><code>assets_with_valid_returns</code></em>: Assets with
+sufficient data are filtered from the subset to be used.</p></li>
+<li><p><em><code>fit_garch</code></em>: A GARCH model is fitted to the
+subset of returns data using the <code>FitGarch()</code> function. The
+resulting residuals, sigma forecasts, and GARCH coefficients are
+stored.</p></li>
+<li><p><em><code>copulas_mixture</code></em>:For each asset, copula
+variates are generated using the
+<code>OptMixtureCopulas()</code>.</p></li>
+<li><p><em><code>zsim</code></em>: Using <code>ComputeZSim()</code> the
+dependence structure is combined using a linear combination of copula
+variates. Therefore, standard residuals are generated from Copulas
+Mixture and GARCH coefficients.</p></li>
+<li><p><em><code>ret_pred</code></em>: Predictions for returns, mean,
+and sigma are made based on the GARCH model and the copula
+variates.</p></li>
+<li><p><em><code>weights</code></em>: The portfolio is optimized using
+the simulated returns for each asset during the specific optimization
+period and the resulting weights are stored in previous defined matrix,
+using <code>CVaROptimization()</code>.</p></li>
+<li><p><em><code>portfolio_returns</code></em>Portfolio returns are
+calculated based on the weights with <code>RetPortfolio()</code>, and
+daily portfolio returns are stored in previous defined matrix.</p></li>
+</ul></li>
+<li><p>The iteration continues until all assets have been
+processed.</p></li>
+</ul>
+<pre class="r"><code>for (i in 2:length(index_vector)){
+  
+  # Establishing window interval in-sample
+  t1 &lt;- index_vector[i - 1]
+  t2 &lt;- index_vector[i] - 1
+  
+  # Convert the in-sample returns data to a matrix format
+  ret_matrix_insample &lt;- as.matrix(returns[t1:t2, -1])
+  
+  # Create a logical vector indicating if each asset has sufficient data
+  assets_with_valid_returns &lt;- colMeans(ret_matrix_insample[1:10,]) != 0 
+  
+  # Subset the returns matrix and asset names based on assets with sufficient data
+  ret_matrix_insample &lt;- ret_matrix_insample[, assets_with_valid_returns]
+  
+  # Fit the GARCH model to the returns data
+  fit_garch &lt;- FitGarch(returns = ret_matrix_insample)
+  
+  # Optimize the mixture of copulas using the uniform distribution from the GARCH model
+  copulas_mixture &lt;- OptMixtureCopulas(unif_dist = fit_garch$unif_dist)
+  
+  # Compute simulated standardized residuals using the optimized copula mixture and GARCH coefficients
+  zsim &lt;- ComputeZSim(copula_mixture = copulas_mixture, garch_coef = fit_garch$garch_coef)
+  
+  # Predict future returns using the GARCH model, simulated residuals, and volatility estimates
+  ret_pred &lt;- PredictGarch(returns = ret_matrix_insample, 
+                           sigma = fit_garch$sigma,
+                           zsim = zsim,
+                           garch_coef = fit_garch$garch_coef)$ret_pred
+  
+  # Perform CVaR optimization to determine the optimal portfolio weights
+  weights[i, names_vector[assets_with_valid_returns]] &lt;- CVaROptimization(returns = ret_pred)
+  weights[i, names_vector[!assets_with_valid_returns]] &lt;- 0
+  
+  # Establishing window interval in-sample
+  t3 &lt;- t1 + K
+  t4 &lt;- min(nrow(returns), t2+K)
+  
+  # Convert the realized returns data to a matrix format
+  ret_matrix_outofsample &lt;- as.matrix(returns[t3:t4, -1])
+  
+  # Calculate the portfolio returns based on the optimal weights
+  portfolio_returns[t3:t4,] &lt;- RetPortfolio(returns = ret_matrix_outofsample, 
+                                            weights = rbind(weights[i,]))
+}</code></pre>
+<pre><code>## 
+## Iter: 1 fn: -35.6911  Pars:   0.54853566267  1.00476716630  0.15172027884 93.06219720571  0.08952152291  0.00000001154  0.91047846555
+## Iter: 2 fn: -35.6911  Pars:   0.54853566267  1.00476716630  0.15172027884 93.06219720571  0.08952152291  0.00000001154  0.91047846555
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -205.2712     Pars:    0.46002   1.05623   0.99550  99.99971   0.40229   0.51449   0.08322
+## Iter: 2 fn: -205.2712     Pars:    0.46002   1.05623   0.99550  99.99981   0.40229   0.51449   0.08322
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -110.2088     Pars:  0.32096 1.08940 0.96019 2.00000 0.48785 0.44628 0.06588
+## Iter: 2 fn: -110.2088     Pars:  0.32096 1.08940 0.96019 2.00000 0.48785 0.44628 0.06588
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -46.6423  Pars:   0.11893074678  1.15241351027  0.17692164046 23.18985431161  0.00000007392  0.00000323099  0.99999669509
+## Iter: 2 fn: -46.6423  Pars:   0.11598788406  1.15378916386  0.17692276998 23.19698635323  0.00000005602  0.00000234414  0.99999759984
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -208.0706     Pars:  0.63517 1.08636 0.99164 2.00001 0.55022 0.39591 0.05387
+## Iter: 2 fn: -208.0706     Pars:  0.63517 1.08636 0.99164 2.00000 0.55022 0.39591 0.05387
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -98.5239  Pars:   1.22089  1.00000  0.21874 25.62466  0.14023  0.13288  0.72688
+## Iter: 2 fn: -98.5239  Pars:   1.22087  1.00000  0.21874 25.62942  0.14023  0.13287  0.72689
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -148.2512     Pars:   0.2285656438  1.1381437815  0.3557364001 11.9090977130  0.3025778269  0.0000003339  0.6974218392
+## Iter: 2 fn: -148.2512     Pars:   0.22856615507  1.13814918341  0.35573584175 11.90930567760  0.30257583098  0.00000008721  0.69742408181
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -229.6931     Pars:  0.57980 1.00000 0.45861 5.95973 0.33798 0.15382 0.50820
+## Iter: 2 fn: -229.6931     Pars:  0.57980 1.00000 0.45861 5.95974 0.33798 0.15382 0.50820
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -300.2422     Pars:   0.52896  1.00579  0.42613 22.74407  0.20610  0.14162  0.65228
+## Iter: 2 fn: -300.2422     Pars:   0.52896  1.00579  0.42613 22.74407  0.20610  0.14162  0.65228
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -347.6303     Pars:   0.48861  1.08791  0.36796 10.48744  0.12918  0.04771  0.82311
+## Iter: 2 fn: -347.6303     Pars:   0.48861  1.08791  0.36796 10.48744  0.12918  0.04771  0.82311
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -209.8043     Pars:   0.38058  1.00000  0.28935 20.39178  0.22490  0.13037  0.64474
+## Iter: 2 fn: -209.8043     Pars:   0.38058  1.00000  0.28935 20.39320  0.22490  0.13036  0.64474
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -238.2613     Pars:  0.85409 1.00450 0.28529 9.90313 0.19579 0.16561 0.63859
+## Iter: 2 fn: -238.2613     Pars:  0.85408 1.00450 0.28529 9.90301 0.19580 0.16562 0.63858
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -172.4319     Pars:   0.65268  2.07219  0.21173 33.40149  0.04086  0.01850  0.94064
+## Iter: 2 fn: -172.4319     Pars:   0.65269  2.07220  0.21173 33.39732  0.04086  0.01850  0.94064
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -172.8597     Pars:  0.54560 1.00000 0.29983 9.99473 0.17835 0.26977 0.55188
+## Iter: 2 fn: -172.8597     Pars:  0.54560 1.00000 0.29984 9.99457 0.17835 0.26977 0.55187
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -276.7870     Pars:   0.77345  2.10443  0.27973 15.47151  0.06433  0.03285  0.90281
+## Iter: 2 fn: -276.7870     Pars:   0.77345  2.10443  0.27973 15.47151  0.06433  0.03285  0.90281
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -273.2086     Pars:  5.470e-01 1.273e+00 3.120e-01 3.885e+01 3.546e-02 7.139e-10 9.645e-01
+## Iter: 2 fn: -273.2086     Pars:  5.470e-01 1.273e+00 3.120e-01 3.885e+01 3.546e-02 4.664e-10 9.645e-01
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -317.6352     Pars:  1.09195 1.02701 0.34205 7.54802 0.20183 0.20841 0.58975
+## Iter: 2 fn: -317.6352     Pars:  1.09195 1.02702 0.34205 7.54797 0.20183 0.20841 0.58975
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -264.8907     Pars:  0.23373 1.00000 0.42609 4.29499 0.43411 0.11595 0.44994
+## Iter: 2 fn: -264.8907     Pars:  0.23373 1.00000 0.42609 4.29498 0.43411 0.11595 0.44994
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -253.9894     Pars:   0.61644  1.00000  0.33927 10.10443  0.05803  0.16292  0.77905
+## Iter: 2 fn: -253.9894     Pars:   0.61643  1.00000  0.33927 10.10422  0.05804  0.16292  0.77904
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -234.5134     Pars:   0.72315  1.00000  0.30676 23.41084  0.21386  0.15591  0.63023
+## Iter: 2 fn: -234.5134     Pars:   0.72308  1.00000  0.30678 23.39971  0.21389  0.15592  0.63019
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -486.9577     Pars:  1.12974 1.04746 0.40540 8.63150 0.37885 0.04509 0.57606
+## Iter: 2 fn: -486.9577     Pars:  1.12973 1.04742 0.40539 8.63191 0.37885 0.04509 0.57606
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -299.3528     Pars:   0.70477  1.00000  0.38834 14.74601  0.25483  0.14640  0.59877
+## Iter: 2 fn: -299.3528     Pars:   0.70477  1.00000  0.38834 14.74635  0.25483  0.14640  0.59877
+## solnp--&gt; Completed in 2 iterations
+## 
+## Iter: 1 fn: -227.9501     Pars:   0.70353  1.00000  0.30414 13.20530  0.07628  0.10228  0.82145
+## Iter: 2 fn: -227.9501     Pars:   0.70353  1.00000  0.30414 13.20521  0.07628  0.10228  0.82145
+## Iter: 3 fn: -227.9501     Pars:   0.70352  1.00000  0.30414 13.20485  0.07628  0.10228  0.82144
+## solnp--&gt; Completed in 3 iterations</code></pre>
 </div>
 
 
