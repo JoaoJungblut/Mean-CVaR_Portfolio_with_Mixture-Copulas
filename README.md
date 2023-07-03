@@ -1,6 +1,6 @@
 # The usage of dynamic copulas for portfolio optimization, worst-case CVaR approach with cardinality constraints
 
-This repository contains the code and documentation for my final course project at Universidade Federal do Rio Grande do Sul (UFRGS) in economic science. The project focuses on the usage of dynamic copulas for portfolio optimization using the worst-case CVaR (Conditional Value at Risk) approach with cardinality constraints. The analysis is performed on a dataset of S&P 500 returns since the year 2000.
+This repository contains the code and documentation for my final course project at Universidade Federal do Rio Grande do Sul (UFRGS) in economic science. The project focuses on the usage of dynamic copulas for portfolio optimization using the worst-case Conditional Value at Risk (CVaR) approach with cardinality constraints. The analysis is performed on a dataset of S&P 500 returns since the year 2000.
 
 ## Project Structure
 
