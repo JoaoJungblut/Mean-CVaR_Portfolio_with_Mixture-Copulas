@@ -1,0 +1,225 @@
+---
+title: "The usage of dynamic copulas for portfolio optimization, worst-case cvar approach
+  with cardinality constraints"
+author: "João Ramos Jungblut"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Set R project environment 
+
+```{r, echo=TRUE, eval=TRUE, include=TRUE, message=FALSE, warning=FALSE}
+# setting R project environment
+my_dir <- dirname(rstudioapi::getActiveDocumentContext()$path)
+setwd(my_dir)
+
+# cleaning variables and graphs
+rm(list=ls())
+graphics.off()
+
+```
+
+
+# Load required packages
+
+- **tidyverse**: Data manipulation and visualization.
+- **tidyquant**: Financial data analysis.
+- **rugarch**: Univariate GARCH modeling.
+- **fGarch**: Multivariate GARCH modeling.
+- **copula**: Copula modeling.
+- **Rsolnp**: Nonlinear optimization.
+- **fPortfolio**: Portfolio optimization.
+
+```{r, echo=TRUE, eval=TRUE, include=TRUE, message=FALSE, warning=FALSE}
+# Load required packages
+library(tidyverse)     # Data manipulation and visualization
+library(tidyquant)     # Financial data analysis
+library(rugarch)       # Univariate GARCH modeling
+library(fGarch)        # Multivariate GARCH modeling
+library(copula)        # Copula modeling
+library(Rsolnp)        # Nonlinear optimization
+library(fPortfolio)    # Portfolio optimization
+
+```
+
+
+# Importing modules
+
+This code snippet is importing several modules or scripts into the current script or environment. Each module is sourced using the **source()** function, which reads and executes the code in the specified file.
+
+```{r, echo=TRUE, eval=TRUE, include=TRUE, message=FALSE, warning=FALSE}
+# Importing modules
+source("data_preprocessing.R")
+source("garch_estimate.R")
+source("copula_estimate.R")
+source("portfolio_optimization.R")
+source("performance_metrics.R")
+
+```
+
+Here's a breakdown of what each module might do:
+
+### data_preprocessing.R
+
+The module `data_preprocessing` defines a function that imports financial data for a set of tickers and calculates their returns. 
+
+```{r, echo=TRUE, eval=FALSE, include=TRUE, message=FALSE, warning=FALSE}
+GetReturns <- function(tickers, start_date) {
+  data <- tidyquant::tq_get(tickers, from = start_date) %>% 
+    dplyr::select("date", "symbol", "adjusted") %>%
+    dplyr::group_by(symbol) %>% 
+    dplyr::mutate(return = log(adjusted) - log(dplyr::lag(adjusted))) %>% 
+    dplyr::ungroup() %>% 
+    dplyr::select(-adjusted) %>% 
+    tidyr::spread(key = symbol, value = return) %>% 
+    dplyr::mutate(dplyr::across(where(is.numeric), ~replace(., is.na(.), 0)))
+  
+  return(data)
+
+}
+```
+
+##### GetReturns
+- The function **GetReturns** takes two arguments: *tickers*, which is a character vector specifying the tickers or symbols of the financial assets to fetch data for, and *start_date*, which is the date from which to start fetching the data. Inside the function, the following steps are performed:
+
+1. The **'tidyquant::tq_get()'** function is used to fetch the data for the specified tickers from the specified start date. The resulting data includes columns for "date", "symbol", and "adjusted" prices.
+
+2. The **'dplyr::select()'** function is used to keep only the "date", "symbol", and "adjusted" columns in the data.
+
+3. The **'dplyr::group_by()'** function is used to group the data by symbol.
+
+4. The **'dplyr::mutate()'** function is used to create a new column called "return". The return for each day is calculated as the log difference between the adjusted price of the current day and the adjusted price of the previous day **'(log(adjusted) - log(dplyr::lag(adjusted)))'**.
+
+5. The **'dplyr::ungroup()'** function is used to remove the grouping by symbol.
+
+6. The **'dplyr::select()'** function is used again to remove the "adjusted" column from the data, as it is no longer needed.
+
+7. The **'tidyr::spread()'** function is used to spread the data from long to wide format, with each symbol having its own column containing the returns.
+
+The **'dplyr::mutate()'** function is used again to replace any missing values in the data (represented as *NA*) with zeros (*0*).
+
+
+### garch_estimate.R
+
+The **'garch_estimate'** module defines a function that fits a Generalized Autoregressive Conditional Heteroskedasticity (GARCH) model to a set of returns. Also, it defines a function that uses a fitted GARCH model to predict future returns. 
+
+```{r, echo=TRUE, eval=FALSE, include=TRUE, message=FALSE, warning=FALSE}
+FitGarch <- function(returns){
+  
+  # Initialize the GARCH specification
+  mod_garch <- try(rugarch::ugarchspec(variance.model = list(model = "sGARCH", 
+                                                             garchOrder = c(1, 1),
+                                                             variance.targeting = TRUE),
+                                       mean.model = list(armaOrder = c(1, 0)),
+                                       distribution.model = "sstd"),
+                   silent = TRUE)
+  
+  # Matrix to save model coefficients, standard deviation and residuals
+  unif_dist <- garch_pred <- sigma <- residuals <- matrix(nrow = nrow(returns), 
+                                                          ncol = ncol(returns))
+  garch_coef <- vector("list", length = ncol(returns))
+  
+  # Loop over each asset
+  for(j in 1:ncol(returns)){
+    # Fitting GARCH model
+    garch_fit <- try(ugarchfit(mod_garch, data = returns[,j], solver = "hybrid"),
+                     silent=TRUE)
+    
+    # Save residuals, sigma forecasts, GARCH coefficients, and uniform distribution values
+    residuals[, j] <- garch_fit@fit$residuals
+    sigma[, j] <- garch_fit@fit$sigma
+    garch_coef[[j]] <- garch_fit@fit$coef
+    unif_dist[, j] <- fGarch::psstd(q = residuals[, j] / sigma[, j],
+                                    nu = garch_coef[[j]][6],
+                                    xi = garch_coef[[j]][5])
+  }
+  
+  # Create a list to store the results
+  result <- list(residuals = residuals,
+                 sigma = sigma,
+                 garch_coef = garch_coef,
+                 unif_dist = unif_dist)
+  
+  # Return the results
+  return(result)
+}
+
+
+PredictGarch <- function(returns, sigma, zsim, garch_coef, n_ahead = 252) {
+  # Initialize matrices to store predicted values
+  ret_pred <- mean_pred <- sigma_pred <- matrix(nrow = n_ahead, ncol = ncol(returns))
+  
+  for (j in 1:ncol(returns)) {
+    # Get the last observed return and sigma
+    ret_t <- as.numeric(returns[ncol(returns), j])
+    sigma_t <- sigma[ncol(sigma), j]
+    
+    # Forecasting at t = 1
+    sigma_pred[1, j] <- sqrt(garch_coef[[j]][7] +  # omega
+                               garch_coef[[j]][3] * (ret_t)^2 +  # alpha1
+                               garch_coef[[j]][4] * (sigma_t)^2)  # beta1
+    mean_pred[1, j] <- garch_coef[[j]][1] + garch_coef[[j]][2] * ret_t  # mu and ar1
+    ret_pred[1, j] <- mean_pred[1, j] + sigma_pred[1, j] * zsim[1, j]
+    
+    # Forecasting for t > 1
+    for (i in 2:n_ahead) {
+      sigma_pred[i, j] <- sqrt(garch_coef[[j]][7] +  # omega
+                                 garch_coef[[j]][3] * (ret_pred[(i - 1), j])^2 +  # alpha1
+                                 garch_coef[[j]][4] * (sigma_pred[(i - 1), j])^2)  # beta1
+      mean_pred[i, j] <- garch_coef[[j]][1] + garch_coef[[j]][2] * ret_pred[(i - 1), j]  # mu and ar1
+      ret_pred[i, j] <- mean_pred[i, j] + sigma_pred[i, j] * zsim[i, j]
+    }
+  }
+  
+  # Create a list to store the predicted values
+  result <- list(sigma_pred = sigma_pred,
+                 mean_pred = mean_pred,
+                 ret_pred = ret_pred)
+  
+  return(result)
+}
+
+
+
+```
+
+
+##### FitGarch
+- The **`FitGarch`** function takes a matrix of *'returns'* as input and fits a GARCH model to each asset in the returns matrix. Here is an explanation of the steps performed in the function:
+
+1. Initialization: The GARCH model specification is initialized using the **`rugarch::ugarchspec`** function. It specifies a symmetric GARCH(1,1) model with variance targeting, an ARMA(1,0) mean model, and a standardized Student's t distribution.
+
+2. Initialization of result matrices: Several matrices are initialized to store the model coefficients, standard deviation forecasts, residuals, and uniform distribution values. These matrices have dimensions based on the number of rows and columns in the input returns matrix.
+
+3. Loop over each asset: The function iterates over each column (asset) in the returns matrix.
+
+4. Fitting GARCH model: The GARCH model is fitted to the returns of the current asset using the **`ugarchfit`** function. The resulting model object is stored in the variable **`garch_fit`**. If an error occurs during fitting, it is caught and silently ignored.
+
+5. Saving model outputs: The residuals, sigma forecasts, GARCH coefficients, and uniform distribution values are extracted from the fitted GARCH model and stored in the corresponding matrices for the current asset.
+
+6. Creating result list: All the matrices are combined into a list named **`result`**, which serves as the output of the function.
+
+7. Returning the results: The `result` list is returned by the function.
+
+
+
+##### PredictGarch
+- The **`PredictGarch`** function takes the *'returns'* matrix, sigma forecasts, simulated standardized residuals (*`zsim`*), GARCH coefficients, and the number of periods to forecast (*`n_ahead`*) as inputs. It generates predicted values for returns, mean, and sigma for the specified number of periods. Here is an explanation of the steps performed in the function:
+
+1. Initialization: Matrices are initialized to store the predicted values for returns (**`ret_pred`**), mean (**`mean_pred`**), and sigma (**`sigma_pred`**). These matrices have dimensions based on the specified number of periods and the number of columns in the returns matrix.
+
+2. Loop over each asset: The function iterates over each column (asset) in the returns matrix.
+
+3. Getting the last observed return and sigma: The last observed return and sigma from the input data are extracted for the current asset.
+
+4. Forecasting at t = 1: The function calculates the predicted sigma and mean at the first forecast period (t = 1) using the GARCH coefficients and the last observed return and sigma. It also generates the predicted return for t = 1 by adding the product of the predicted sigma and the first simulated standardized residual from **`zsim`** to the predicted mean.
+
+5. Forecasting for t > 1: The function iterates over the remaining forecast periods (t > 1) and calculates the predicted sigma, mean, and return using the GARCH coefficients and the previously predicted values.
+
+6. Creating result list: All the predicted matrices (sigma, mean, and return) are combined into a list named **`result`**.
+
+7. Returning the predicted values: The **`result`** list is returned by the function.
+
+
+
+

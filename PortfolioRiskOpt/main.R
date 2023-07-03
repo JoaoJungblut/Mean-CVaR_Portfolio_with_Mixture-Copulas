@@ -32,10 +32,7 @@ source("performance_metrics.R")
 
 # Define the list of stock tickers and the start date for data retrieval
 tickers <- c("PETR4.SA", "VALE3.SA", "ITUB4.SA", "BBAS3.SA", "ABEV3.SA", 
-             "BBDC4.SA", "GRND3.SA", "SMTO3.SA", "SLCE3.SA", "VIVT3.SA", 
-             "B3SA3.SA", "UNIP6.SA", "ELET6.SA", "MRFG3.SA", "BRKM5.SA",
-             "KLBN11.SA", "SUZB3.SA", "ITSA4.SA", "MRVE3.SA", "BBSE3.SA",
-             "TAEE11.SA", "TIMS3.SA", "AMER3.SA", "ALPA4.SA", "GGBR4.SA")
+             "BBDC4.SA", "GRND3.SA", "SMTO3.SA", "SLCE3.SA", "VIVT3.SA")
 start_date <- "2000-01-01"
 
 # Retrieve the stock returns for the given tickers and start date
@@ -62,7 +59,7 @@ for (i in 2:length(index_vector)){
   ret_matrix_insample <- as.matrix(returns[t1:t2, -1])
   
   # Create a logical vector indicating if each asset has sufficient data
-  assets_with_valid_returns <- colMeans(ret_matrix_insample[1:50,]) != 0 
+  assets_with_valid_returns <- colMeans(ret_matrix_insample[1:10,]) != 0 
   
   # Subset the returns matrix and asset names based on assets with sufficient data
   ret_matrix_insample <- ret_matrix_insample[, assets_with_valid_returns]
