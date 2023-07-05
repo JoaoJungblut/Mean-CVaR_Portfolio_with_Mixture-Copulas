@@ -202,27 +202,3 @@ for (i in 2:length(index_vector)) {
 }
 
 
-library(fPortfolio)
-
-# Dados de retorno dos ativos
-data <- as.timeSeries(returns)
-
-# Definindo os parâmetros da otimização
-nAssets <- ncol(data)
-spec <- portfolioSpec()
-fPortfolio::setType(spec) <- "CVaR"  # Set portfolio type as CVaR
-fPortfolio::setSolver(spec) <- "solveRglpk.CVAR"  # Use linear programming solver for CVaR optimization
-fPortfolio::setAlpha(spec) <- 0.025  # Set CVaR alpha level as 0.05 (CVaR_0.95)
-fPortfolio::setTargetReturn(spec) <- targetReturn  
-cardinality <- rep("maxCard=8", nAssets)
-
-
-# Realizando a otimização do portfólio
-opt_portfolio <- portfolioFrontier(data, spec, constraints = cardinality)
-
-# Extraindo os pesos dos ativos no portfólio otimizado
-weights <- getWeights(opt_portfolio)
-
-# Visualizando a alocação de pesos
-print(weights)
-
