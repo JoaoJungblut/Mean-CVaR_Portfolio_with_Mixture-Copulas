@@ -37,7 +37,7 @@ source("performance_metrics.R")
 
 # Retrieve the stock returns for the given tickers and start date
 #returns <- GetReturns(tickers = tickers, start_date = start_date)
-returns <- read_csv("log_rtn.csv")
+returns <- read_csv("data_directory/log_rtn.csv")
 
 ###### Error in estimating parameters of Copula t for > 28 assets
 
