@@ -10,9 +10,11 @@ library(fPortfolio)    # Portfolio optimization
 # Importing data and calculating returns
 returns <- tidyquant::tq_get(c("PETR4.SA", "VALE3.SA", "ITUB4.SA",
                                "BBAS3.SA", "ABEV3.SA", "BBDC4.SA",
-                               "GRND3.SA", "SMTO3.SA", "SLCE3.SA",
-                               "VIVT3.SA", "B3SA3.SA", "UNIP6.SA",
-                               "ELET6.SA", "MRFG3.SA", "BRKM5.SA"), 
+                               "SLCE3.SA", "BBSE3.SA", "SMTO3.SA",
+                               "AMER3.SA", "MGLU3.SA", "KLBN11.SA",
+                               "ITSA4.SA", "BPAC11.SA", "SUZB3.SA",
+                               "RENT3.SA", "LREN3.SA", "PETR3.SA",
+                               "SANB11.SA", "B3SA3.SA", "YDUQ3.SA"), 
                              from = "1997-01-01") %>% 
   dplyr::select(date, symbol, adjusted) %>% 
   dplyr::group_by(symbol) %>% 
@@ -208,15 +210,15 @@ data <- as.timeSeries(returns)
 # Definindo os parâmetros da otimização
 nAssets <- ncol(data)
 spec <- portfolioSpec()
+fPortfolio::setType(spec) <- "CVaR"  # Set portfolio type as CVaR
+fPortfolio::setSolver(spec) <- "solveRglpk.CVAR"  # Use linear programming solver for CVaR optimization
+fPortfolio::setAlpha(spec) <- 0.025  # Set CVaR alpha level as 0.05 (CVaR_0.95)
+fPortfolio::setTargetReturn(spec) <- targetReturn  
+cardinality <- rep("maxCard=8", nAssets)
 
-# Criando o objeto de restrições
-constraints <- portfolioConstraints()
-
-# Definindo a restrição de cardinalidade
-ncardConstraints(constraints, min.card = 3, max.card = 5)
 
 # Realizando a otimização do portfólio
-opt_portfolio <- portfolioFrontier(data, spec, constraints = constraints)
+opt_portfolio <- portfolioFrontier(data, spec, constraints = cardinality)
 
 # Extraindo os pesos dos ativos no portfólio otimizado
 weights <- getWeights(opt_portfolio)
