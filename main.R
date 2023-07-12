@@ -67,7 +67,7 @@ for (i in 2:length(index_vector)){
   
   # Subset the returns matrix and asset names based on assets with sufficient data
   ret_matrix_insample <- ret_matrix_insample[, assets_with_valid_returns]
-  
+ 
   # Fit the GARCH model to the returns data
   fit_garch <- FitGarch(returns = ret_matrix_insample)
   
@@ -97,6 +97,54 @@ for (i in 2:length(index_vector)){
   # Calculate the portfolio returns based on the optimal weights
   portfolio_returns[t3:t4,] <- RetPortfolio(returns = ret_matrix_outofsample, 
                                             weights = rbind(weights[i,]))
+}
+
+
+weights <- matrix(nrow = nrow(returns), ncol = N) # Create a matrix to store the weights for each asset in the portfolio
+colnames(weights) <- names_vector # Set the column names of the weights matrix as the asset names
+weights[1:K,] <-  0 # Initialize the first row of the weights matrix as all zeros
+
+for (i in (K + 1):nrow(returns)){
+  print(paste(i - K, "of", nrow(returns) - K))
+  # Establishing window interval in-sample
+  t1 <- i - K
+  t2 <- i - 1
+  
+  # Convert the in-sample returns data to a matrix format
+  ret_matrix_insample <- as.matrix(returns[t1:t2, -1])
+  
+  # Create a logical vector indicating if each asset has sufficient data
+  assets_with_valid_returns <- !colMeans(is.na(ret_matrix_insample[,]))
+  
+  # Subset the returns matrix and asset names based on assets with sufficient data
+  ret_matrix_insample <- ret_matrix_insample[, assets_with_valid_returns]
+  
+  # Fit the GARCH model to the returns data
+  fit_garch <- FitGarch(returns = ret_matrix_insample)
+  
+  # Optimize the mixture of copulas using the uniform distribution from the GARCH model
+  copulas_mixture <- OptMixtureCopulas(unif_dist = fit_garch$unif_dist)
+  
+  # Compute simulated standardized residuals using the optimized copula mixture and GARCH coefficients
+  zsim <- ComputeZSim(copula_mixture = copulas_mixture, garch_coef = fit_garch$garch_coef)
+  
+  # Predict future returns using the GARCH model, simulated residuals, and volatility estimates
+  ret_pred <- PredictGarch(returns = ret_matrix_insample, 
+                           sigma = fit_garch$sigma,
+                           zsim = zsim,
+                           garch_coef = fit_garch$garch_coef)
+  
+  # Perform CVaR optimization to determine the optimal portfolio weights
+  weights[i, names_vector[assets_with_valid_returns]] <- CVaROptimization(returns = ret_pred)
+  weights[i, names_vector[!assets_with_valid_returns]] <- 0
+  
+  # Convert the realized returns data to a matrix format
+  ret_matrix_outofsample <- as.matrix(returns[i, -1])
+  ret_matrix_outofsample[, names_vector[!assets_with_valid_returns]] <- 0
+  
+  # Calculate the portfolio returns based on the optimal weights
+  portfolio_returns[i,] <- RetPortfolio(returns = ret_matrix_outofsample, 
+                                        weights = rbind(weights[i,])) - 0.0003
 }
 
 
