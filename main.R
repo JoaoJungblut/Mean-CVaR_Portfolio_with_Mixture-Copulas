@@ -54,7 +54,7 @@ portfolio_returns <- matrix(nrow = nrow(returns), ncol = 1)  # Matrix to store p
 portfolio_returns[1:K, ] <- 0  # Initialize the first K rows as zero
 
 for (i in 2:length(index_vector)){
-  
+  print(i)
   # Establishing window interval in-sample
   t1 <- index_vector[i - 1]
   t2 <- index_vector[i] - 1
