@@ -1,7 +1,7 @@
 #################################################################################
 # Main file to run worst-case CVaR portfolio optimization based mixture copulas #
 # Authors: Joao Ramos Jungblut ##################################################
-# Last update: 2023-06-27 #######################################################
+# Last update: 2023-07-13 #######################################################
 #################################################################################
 
 # setting R project environment
@@ -144,7 +144,7 @@ for (i in (K + 1):nrow(returns)){
   
   # Calculate the portfolio returns based on the optimal weights
   portfolio_returns[i,] <- RetPortfolio(returns = ret_matrix_outofsample, 
-                                        weights = rbind(weights[i,])) - 0.0003
+                                        weights = rbind(weights[i,])) - 0.0003 # minus the transaction costs
 }
 
 

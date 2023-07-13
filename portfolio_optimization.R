@@ -1,4 +1,4 @@
-CVaROptimization <- function(returns, Alpha = 0.025, TargetReturn = 0) {
+CVaROptimization <- function(returns, Alpha = 0.025, TargetReturn = 0.0003) { # Target return must consider transaction costs
   frontierSpec <- fPortfolio::portfolioSpec()  # Portfolio specification for optimization
   fPortfolio::setType(frontierSpec) <- "CVaR"  # Set portfolio type as CVaR
   fPortfolio::setSolver(frontierSpec) <- "solveRglpk.CVAR"  # Use linear programming solver for CVaR optimization
