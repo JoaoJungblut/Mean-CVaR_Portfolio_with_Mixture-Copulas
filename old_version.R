@@ -1,7 +1,7 @@
 #################################################################################
 # Main file to run worst-case CVaR portfolio optimization based mixture copulas #
 # Authors: Joao Ramos Jungblut ##################################################
-# Last update: 2023-07-13 #######################################################
+# Last update: 2023-06-27 #######################################################
 #################################################################################
 
 # setting R project environment
@@ -31,27 +31,33 @@ source("portfolio_optimization.R")
 source("performance_metrics.R")
 
 # Define the list of stock tickers and the start date for data retrieval
+#tickers <- c("PETR4.SA", "VALE3.SA", "ITUB4.SA", "BBAS3.SA", "ABEV3.SA", 
+#             "BBDC4.SA", "GRND3.SA", "SMTO3.SA", "SLCE3.SA", "VIVT3.SA")
+#start_date <- "2000-01-01"
+
+# Retrieve the stock returns for the given tickers and start date
+#returns <- GetReturns(tickers = tickers, start_date = start_date)
+#returns <- read_csv("data_directory/log_rtn.csv")
 returns <- read_csv("data_directory/etfs_rtn.csv")
 
+###### Error in estimating parameters of Copula t for > 28 assets
 
 # Creating auxiliary matrices and list
 N <- base::ncol(returns) - 1   # Number of assets
 K <- 252                 # Window size for GARCH estimation
 index_vector <- seq(1, nrow(returns), by = K)  # Index vector for rolling optimization
 names_vector <- names(returns)[-1]   # Asset names for reference
-weights <- matrix(nrow = nrow(returns), ncol = N) # Create a matrix to store the weights for each asset in the portfolio
+weights <- matrix(nrow = length(index_vector), ncol = N) # Create a matrix to store the weights for each asset in the portfolio
 colnames(weights) <- names_vector # Set the column names of the weights matrix as the asset names
-weights[1:K,] <-  0 # Initialize the first row of the weights matrix as all zeros
+weights[1,] <-  0 # Initialize the first row of the weights matrix as all zeros
 portfolio_returns <- matrix(nrow = nrow(returns), ncol = 1)  # Matrix to store portfolio returns
 portfolio_returns[1:K, ] <- 0  # Initialize the first K rows as zero
 
-
-# Rolling window estimation
-for (i in (K + 1):nrow(returns)){
-  print(paste(i - K, "of", nrow(returns) - K))
+for (i in 2:length(index_vector)){
+  print(i)
   # Establishing window interval in-sample
-  t1 <- i - K
-  t2 <- i - 1
+  t1 <- index_vector[i - 1]
+  t2 <- index_vector[i] - 1
   
   # Convert the in-sample returns data to a matrix format
   ret_matrix_insample <- as.matrix(returns[t1:t2, -1])
@@ -75,19 +81,22 @@ for (i in (K + 1):nrow(returns)){
   ret_pred <- PredictGarch(returns = ret_matrix_insample, 
                            sigma = fit_garch$sigma,
                            zsim = zsim,
-                           garch_coef = fit_garch$garch_coef)
+                           garch_coef = fit_garch$garch_coef)$ret_pred
   
   # Perform CVaR optimization to determine the optimal portfolio weights
   weights[i, names_vector[assets_with_valid_returns]] <- CVaROptimization(returns = ret_pred)
   weights[i, names_vector[!assets_with_valid_returns]] <- 0
   
+  # Establishing window interval in-sample
+  t3 <- t1 + K
+  t4 <- min(nrow(returns), t2+K)
+  
   # Convert the realized returns data to a matrix format
-  ret_matrix_outofsample <- as.matrix(returns[i, -1])
-  ret_matrix_outofsample[, names_vector[!assets_with_valid_returns]] <- 0
+  ret_matrix_outofsample <- as.matrix(returns[t3:t4, -1])
   
   # Calculate the portfolio returns based on the optimal weights
-  portfolio_returns[i,] <- RetPortfolio(returns = ret_matrix_outofsample, 
-                                        weights = rbind(weights[i,])) - 0.0003 # minus the transaction costs
+  portfolio_returns[t3:t4,] <- RetPortfolio(returns = ret_matrix_outofsample, 
+                                            weights = rbind(weights[i,]))
 }
 
 
