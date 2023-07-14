@@ -32,6 +32,13 @@ eqfun <- function(params, U, copC, copG, copt){
 }
 
 
+gauss_cop_sim <- function(cop_pars, i, nsim){
+  Gcop <- matrix(0, nrow = nsim, ncol = 8)
+  Gcop[,] <- copula::rCopula(n = nsim, copula = normalCopula(param = cop_pars[[i]], dim = 8))
+  return(Gcop)
+}
+
+
 OptMixtureCopulas <- function(unif_dist) {
   # Initialize copula objects
   copt <- copula::tCopula(param = 0.5, dim = ncol(unif_dist))  # t-Copula with parameter 0.5
