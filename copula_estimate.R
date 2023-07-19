@@ -39,7 +39,7 @@ gauss_cop_sim <- function(cop_pars, i, nsim){
 }
 
 
-OptMixtureCopulas <- function(unif_dist) {
+OptMixtureCopulas <- function(unif_dist, K = 10000) {
   # Initialize copula objects
   copt <- copula::tCopula(param = 0.5, dim = ncol(unif_dist))  # t-Copula with parameter 0.5
   copC <- copula::claytonCopula(2, dim = ncol(unif_dist))      # Clayton copula with delta = 2
@@ -74,16 +74,16 @@ OptMixtureCopulas <- function(unif_dist) {
   cop_param <- opt$pars
   
   # Clayton, t, gumbel, and ctg variates matrix
-  ctg <- Cc <- Cg <- Ct <- matrix(nrow = nrow(unif_dist), ncol = ncol(unif_dist))
+  ctg <- Cc <- Cg <- Ct <- matrix(nrow = K, ncol = ncol(unif_dist))
   
   ## Generating copula variates
-  Cc[, ] <- cop_param[5] * copula::rCopula(n = nrow(unif_dist),
+  Cc[, ] <- cop_param[5] * copula::rCopula(n = K,
                                            copula = copula::claytonCopula(param = cop_param[1],
                                                                           dim = ncol(unif_dist)))
-  Cg[, ] <- cop_param[6] * copula::rCopula(n = nrow(unif_dist),
+  Cg[, ] <- cop_param[6] * copula::rCopula(n = K,
                                            copula = copula::gumbelCopula(param = cop_param[2],
                                                                          dim = ncol(unif_dist)))
-  Ct[, ] <- cop_param[7] * copula::rCopula(n = nrow(unif_dist),
+  Ct[, ] <- cop_param[7] * copula::rCopula(n = K,
                                            copula = copula::tCopula(param = cop_param[3],
                                                                     df = cop_param[4],
                                                                     dim = ncol(unif_dist)))
