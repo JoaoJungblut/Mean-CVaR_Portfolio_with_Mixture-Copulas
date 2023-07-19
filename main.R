@@ -42,7 +42,7 @@ returns <- GetReturns(tickers = tickers, start_date = start_date)
 N <- base::ncol(returns) - 1   # Number of assets
 We <- 252 # Window size for GARCH estimation
 Wt <- 1000 # Total size of window 
-K <- 10000 # Number of simulations 
+K <- 1000 # Number of simulations 
 names_vector <- names(returns)[-1]   # Asset names for reference
 weights <- matrix(nrow = Wt, ncol = N) # Create a matrix to store the weights for each asset in the portfolio
 colnames(weights) <- names_vector # Set the column names of the weights matrix as the asset names
@@ -55,7 +55,7 @@ set.seed(53)
 # Rolling window estimation
 for (i in (We + 1):Wt){
   print(paste(i - We, "of", Wt - We))
-  set.seed(53)
+ 
   # Establishing window interval in-sample
   t1 <- i - We
   t2 <- i - 1
