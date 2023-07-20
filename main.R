@@ -43,7 +43,7 @@ returns <- read_csv("data_directory/etfs_rtn.csv") %>%
 # Creating auxiliary matrices and list
 N <- base::ncol(returns) - 1   # Number of assets
 We <- 252 # Window size for GARCH estimation
-Wt <- 352 # Total size of window 
+Wt <- nrow(returns) # Total size of window 
 K <- 1000 # Number of simulations 
 names_vector <- names(returns)[-1]   # Asset names for reference
 weights <- matrix(nrow = Wt, ncol = N) # Create a matrix to store the weights for each asset in the portfolio
@@ -52,7 +52,7 @@ weights[1:Wt,] <-  0 # Initialize the first K rows of the weights matrix as all 
 portfolio_returns <- matrix(nrow = Wt, ncol = 1)  # Matrix to store portfolio returns
 portfolio_returns[1:Wt, ] <- 0  # Initialize the first K rows as zero
 
-set.seed(53)
+set.seed(7)
 
 # Rolling window estimation
 for (i in (We + 1):Wt){
