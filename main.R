@@ -38,12 +38,12 @@ start_date <- "2010-01-01"
 #Retrieve the stock returns for the given tickers and start date
 returns <- GetReturns(tickers = tickers, start_date = start_date)
 returns <- read_csv("data_directory/etfs_rtn.csv") %>% 
-  dplyr::filter("date" >= "2010-01-01")
+  dplyr::filter(date >= "2013-01-01")
 
 # Creating auxiliary matrices and list
 N <- base::ncol(returns) - 1   # Number of assets
 We <- 252 # Window size for GARCH estimation
-Wt <- nrow(returns) # Total size of window 
+Wt <- 352 # Total size of window 
 K <- 1000 # Number of simulations 
 names_vector <- names(returns)[-1]   # Asset names for reference
 weights <- matrix(nrow = Wt, ncol = N) # Create a matrix to store the weights for each asset in the portfolio
