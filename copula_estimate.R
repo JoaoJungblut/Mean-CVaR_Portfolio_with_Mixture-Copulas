@@ -32,13 +32,6 @@ eqfun <- function(params, U, copC, copG, copt){
 }
 
 
-gauss_cop_sim <- function(cop_pars, i, nsim){
-  Gcop <- matrix(0, nrow = nsim, ncol = 8)
-  Gcop[,] <- copula::rCopula(n = nsim, copula = normalCopula(param = cop_pars[[i]], dim = 8))
-  return(Gcop)
-}
-
-
 OptMixtureCopulas <- function(unif_dist, K = 10000) {
   # Initialize copula objects
   copt <- copula::tCopula(param = 0.5, dim = ncol(unif_dist))  # t-Copula with parameter 0.5
@@ -96,6 +89,13 @@ OptMixtureCopulas <- function(unif_dist, K = 10000) {
 }
 
 
+GaussCopula <- function(unif_dist, K = 10000){
+  Gcop <- matrix(0, nrow = K, ncol = ncol(unif_dist))
+  Gcop[,] <- copula::rCopula(n = nsim, copula = normalCopula(param = cop_pars[[i]], dim = 8))
+  return(Gcop)
+}
+
+
 ComputeZSim <- function(copula_mixture, garch_coef) {
   # Create an empty matrix to store zsim values
   zsim <- matrix(nrow = nrow(copula_mixture), ncol = ncol(copula_mixture))
@@ -113,4 +113,6 @@ ComputeZSim <- function(copula_mixture, garch_coef) {
   # Return the zsim matrix
   return(zsim)
 }
+
+
 

@@ -30,8 +30,13 @@ source("copula_estimate.R")
 source("portfolio_optimization.R")
 source("performance_metrics.R")
 
-# Importing log-returns data file
-returns <- read_csv("data_directory/etfs_rtn.csv") 
+# Define the list of stock tickers and the start date for data retrieval
+tickers <- c("PETR4.SA", "VALE3.SA", "ITUB4.SA", "BBAS3.SA", "ABEV3.SA", 
+             "BBDC4.SA", "GRND3.SA", "SMTO3.SA", "SLCE3.SA", "VIVT3.SA")
+start_date <- "2000-01-01"
+
+# Retrieve the stock returns for the given tickers and start date
+returns <- GetReturns(tickers = tickers, start_date = start_date)
 
 # Creating auxiliary matrices and list
 N <- base::ncol(returns) - 1   # Number of assets
@@ -88,6 +93,7 @@ for (i in 2:length(index_vector)){
   
   # Convert the realized returns data to a matrix format
   ret_matrix_outofsample <- as.matrix(returns[t3:t4,-1])
+  ret_matrix_outofsample[, names_vector[!assets_with_valid_returns]] <- 0
   
   # Calculate the portfolio returns based on the optimal weights
   portfolio_returns[t3:t4,] <- RetPortfolio(returns = ret_matrix_outofsample - 0.0003, # minus the transaction costs
@@ -118,3 +124,7 @@ print(drawdown)
 # Generate graph
 PerformanceAnalytics::charts.PerformanceSummary(portfolio_returns_xts)
 
+
+
+portfolio_returns_xts <- xts::xts(returns[,-1], order.by = returns$date) 
+PerformanceAnalytics::charts.PerformanceSummary(portfolio_returns_xts)
