@@ -6,8 +6,9 @@ GetReturns <- function(tickers, start_date) {
     dplyr::mutate(return = log(adjusted) - log(dplyr::lag(adjusted))) %>% 
     dplyr::ungroup() %>% 
     dplyr::select(-adjusted) %>% 
+    stats::na.omit() %>% 
     tidyr::spread(key = symbol, value = return) %>% 
-    dplyr::mutate(dplyr::across(where(is.numeric), ~replace(., is.na(.), 0)))
+    dplyr::mutate(dplyr::across(where(is.numeric)))
   
   return(data)
 }

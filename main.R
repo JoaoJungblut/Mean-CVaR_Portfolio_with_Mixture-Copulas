@@ -37,7 +37,7 @@ returns <- read_csv("data_directory/etfs_rtn.csv")
 N <- base::ncol(returns) - 1   # Number of assets
 We <- 252 # Window size for GARCH estimation
 Wt <- nrow(returns) # Total size of window
-K <- 100000 # Number of simulations 
+K <- 10000 # Number of simulations 
 index_vector <- seq(1, Wt, by = We)  # Index vector for rolling optimization
 names_vector <- names(returns)[-1]   # Asset names for reference
 weights <- matrix(nrow = length(index_vector), ncol = N) # Create a matrix to store the weights for each asset in the portfolio
@@ -46,7 +46,7 @@ weights[1,] <-  0 # Initialize the first row of the weights matrix as all zeros
 portfolio_returns <- matrix(nrow = Wt, ncol = 1)  # Matrix to store portfolio returns
 portfolio_returns[1:We, ] <- 0  # Initialize the first K rows as zero
 
-set.seed(53)
+set.seed(123)
 
 for (i in 2:length(index_vector)){
   print(i)
@@ -76,18 +76,18 @@ for (i in 2:length(index_vector)){
   ret_pred <- PredictGarch(returns = ret_matrix_insample, 
                            sigma = fit_garch$sigma,
                            zsim = zsim,
-                           garch_coef = fit_garch$garch_coef)
+                           garch_coef = fit_garch$garch_coef)$ret_pred
   
   # Perform CVaR optimization to determine the optimal portfolio weights
   weights[i, names_vector[assets_with_valid_returns]] <- CVaROptimization(returns = ret_pred)
   weights[i, names_vector[!assets_with_valid_returns]] <- 0
   
   # Establishing window interval in-sample
-  t3 <- t1 + K
-  t4 <- min(nrow(returns), t2+K)
+  t3 <- t1 + We
+  t4 <- min(nrow(returns), t2+We)
   
   # Convert the realized returns data to a matrix format
-  ret_matrix_outofsample <- as.matrix(returns[t3:t4, -1])
+  ret_matrix_outofsample <- as.matrix(returns[t3:t4,-1])
   
   # Calculate the portfolio returns based on the optimal weights
   portfolio_returns[t3:t4,] <- RetPortfolio(returns = ret_matrix_outofsample - 0.0003, # minus the transaction costs

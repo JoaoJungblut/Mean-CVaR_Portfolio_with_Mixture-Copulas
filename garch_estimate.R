@@ -39,9 +39,9 @@ FitGarch <- function(returns){
 }
 
 
-PredictGarch <- function(returns, sigma, zsim, garch_coef, n_ahead = 252) {
+PredictGarch <- function(returns, sigma, zsim, garch_coef) {
   # Initialize matrices to store predicted values
-  ret_pred <- mean_pred <- sigma_pred <- matrix(nrow = n_ahead, ncol = ncol(returns))
+  ret_pred <- mean_pred <- sigma_pred <- matrix(nrow = nrow(zsim), ncol = ncol(returns))
   
   for (j in 1:ncol(returns)) {
     # Get the last observed return and sigma
@@ -56,7 +56,7 @@ PredictGarch <- function(returns, sigma, zsim, garch_coef, n_ahead = 252) {
     ret_pred[1, j] <- mean_pred[1, j] + sigma_pred[1, j] * zsim[1, j]
     
     # Forecasting for t > 1
-    for (i in 2:n_ahead) {
+    for (i in 2:nrow(zsim)) {
       sigma_pred[i, j] <- sqrt(garch_coef[[j]][7] +  # omega
                                  garch_coef[[j]][3] * (ret_pred[(i - 1), j])^2 +  # alpha1
                                  garch_coef[[j]][4] * (sigma_pred[(i - 1), j])^2)  # beta1
