@@ -37,7 +37,7 @@ start_date <- "2010-01-01"
 
 # Retrieve the stock returns for the given tickers and start date
 returns <- GetReturns(tickers = tickers, start_date = start_date)
-
+returns <- read_csv("data_directory/etfs_rtn.csv")[-1]
 ###### Error in estimating parameters of Copula t for > 28 assets
 
 # Creating auxiliary matrices and list
@@ -95,8 +95,8 @@ for (i in (We + 1):Wt){
   ret_matrix_outofsample[, names_vector[!assets_with_valid_returns]] <- 0
   
   # Calculate the portfolio returns based on the optimal weights
-  portfolio_returns[i,] <- RetPortfolio(returns = ret_matrix_outofsample - 0.0003,  # minus the transaction costs
-                                        weights = rbind(weights[i,])) 
+  portfolio_returns[i,] <- RetPortfolio(returns = ret_matrix_outofsample,  
+                                        weights = rbind(weights[i,])) - 0.0003 # minus the transaction costs
 }
 
 

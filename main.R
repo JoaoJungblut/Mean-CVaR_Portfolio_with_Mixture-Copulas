@@ -30,13 +30,8 @@ source("copula_estimate.R")
 source("portfolio_optimization.R")
 source("performance_metrics.R")
 
-# Define the list of stock tickers and the start date for data retrieval
-tickers <- c("PETR4.SA", "VALE3.SA", "ITUB4.SA", "BBAS3.SA", "ABEV3.SA", 
-             "BBDC4.SA", "GRND3.SA", "SMTO3.SA", "SLCE3.SA", "VIVT3.SA")
-start_date <- "2000-01-01"
-
-# Retrieve the stock returns for the given tickers and start date
-returns <- GetReturns(tickers = tickers, start_date = start_date)
+# Loading ETF returns
+returns <- read_csv("data_directory/etfs_rtn.csv")[-1]
 
 # Creating auxiliary matrices and list
 N <- base::ncol(returns) - 1   # Number of assets
@@ -54,7 +49,7 @@ portfolio_returns[1:We, ] <- 0  # Initialize the first K rows as zero
 set.seed(123)
 
 for (i in 2:length(index_vector)){
-  print(i)
+  
   # Establishing window interval in-sample
   t1 <- index_vector[i - 1]
   t2 <- index_vector[i] - 1
