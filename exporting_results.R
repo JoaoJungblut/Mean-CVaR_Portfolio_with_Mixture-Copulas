@@ -29,7 +29,25 @@ SavePerformanceTable <- function(returns, filename = "tables/performance_table.t
 
 # Example usage:
 # Assuming you have a variable 'portfolio_returns' containing the portfolio returns data
-SavePerformanceTableAsTxt(portfolio_returns, "tables/performance_table.txt")
+SavePerformanceTable(portfolio_returns, "tables/performance_table.txt")
 
 
+# Function to plot ETF returns and save in a single figure
+PlotReturns <- function(df, filename = "etf_returns_figure.png") {
+  
+  # Convert the data from wide to long format using 'gather' 
+  df_long <- tidyr::gather(df, key = "ETF", value = "Returns", -"date")
+  
+  # Create the plot using 'ggplot2' and 'facet_wrap'
+  p <- ggplot(df_long, aes(x = {{date_column}}, y = LogReturns)) +
+    geom_line() +
+    labs(title = "ETF Returns",
+         x = "Date",
+         y = "Log Returns") +
+    theme_minimal() +
+    facet_wrap(~ ETF, scales = "free_y", ncol = 4)  # Adjust the 'ncol' value as needed
+  
+  # Save the plot as a file
+  ggsave(filename, plot = p, width = 15, height = 10, units = "cm")  # Adjust 'width' and 'height' as needed
+}
 
