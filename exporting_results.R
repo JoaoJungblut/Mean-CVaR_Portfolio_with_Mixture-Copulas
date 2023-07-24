@@ -1,5 +1,11 @@
 # Function to save a LaTeX table of statistics summary
 SaveSummaryStats <- function(df, filename = "tables/summary_stats_table.txt") {
+  
+  # SaveSummaryStats: Function to save a LaTeX table of statistics summary.
+  # Inputs:
+  #   df: A data frame containing asset returns with a 'date' column and individual asset columns.
+  #   filename: File path to save the LaTeX table (default = "tables/summary_stats_table.txt").
+  
   library(xtable)
   
   # Summary statistics for each ETF's log returns
@@ -25,9 +31,13 @@ SaveSummaryStats <- function(df, filename = "tables/summary_stats_table.txt") {
 
 
 
-# Function to save performance metrics as a LaTeX table in a .txt file
-SavePerformanceTable <- function(returns, filename = "tables/performance_table.txt")
-  {
+SavePerformanceTable <- function(returns, filename = "tables/performance_table.txt") {
+  
+  # SavePerformanceTable: Function to save a LaTeX table of portfolio performance metrics.
+  # Inputs:
+  #   returns: A data frame containing asset returns with a 'date' column and individual asset columns.
+  #   filename: File path to save the LaTeX table (default = "tables/performance_table.txt").
+  
   # Compute performance ratios using the original function
   performance_ratios <- ComputePerformance(returns)
   
@@ -57,14 +67,14 @@ SavePerformanceTable <- function(returns, filename = "tables/performance_table.t
   cat("Performance graph saved to:", filename, "\n")
 }
 
-# Example usage:
-# Assuming you have a variable 'portfolio_returns' containing the portfolio returns data
-SavePerformanceTable(portfolio_returns, "tables/performance_table.txt")
 
 
-
-# Function to plot ETF returns and save in a single figure
 SaveGraphReturns <- function(df, filename = "figures/returns_figure.png") {
+  
+  # SaveGraphReturns: Function to save a combined plot of ETF returns in a single figure.
+  # Inputs:
+  #   df: A data frame containing ETF returns with a 'date' column and individual asset columns.
+  #   filename: File path to save the plot as an image (default = "figures/returns_figure.png").
   
   # Convert the data from wide to long format using 'gather' 
   df_long <- tidyr::gather(df, key = "Symbol", value = "Returns", -date)
@@ -100,8 +110,12 @@ SaveGraphReturns <- function(df, filename = "figures/returns_figure.png") {
 
 
 
-# Function to generate and save PerformanceSummary graph
 SavePerformanceGraph <- function(data, filename = "figures/performance_graph.png") {
+  
+  # SavePerformanceGraph: Function to save a performance summary chart as an image.
+  # Inputs:
+  #   data: A data frame containing performance metrics for the portfolio.
+  #   filename: File path to save the performance graph as an image (default = "figures/performance_graph.png").
   
   # Create the PerformanceSummary chart
   chart <- charts.PerformanceSummary(data)
