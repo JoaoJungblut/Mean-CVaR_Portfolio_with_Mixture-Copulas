@@ -1,4 +1,13 @@
 CVaROptimization <- function(returns, Alpha = 0.025, TargetReturn = 0.0003) { # Target return must consider transaction costs
+  
+  # CVaROptimization: Function to perform CVaR optimization for portfolio weights.
+  # Inputs:
+  #   returns: A matrix of asset returns.
+  #   Alpha: CVaR alpha level (default = 0.025).
+  #   TargetReturn: Daily target return constraint (default = 0.0003).
+  # Output:
+  #   A matrix containing the optimized portfolio weights using CVaR optimization.
+  
   frontierSpec <- fPortfolio::portfolioSpec()  # Portfolio specification for optimization
   fPortfolio::setType(frontierSpec) <- "CVaR"  # Set portfolio type as CVaR
   fPortfolio::setSolver(frontierSpec) <- "solveRglpk.CVAR"  # Use linear programming solver for CVaR optimization
@@ -21,7 +30,15 @@ CVaROptimization <- function(returns, Alpha = 0.025, TargetReturn = 0.0003) { # 
 }
 
 
+
 NaiveDiversification <- function(returns) {
+  
+  # NaiveDiversification: Function to calculate portfolio returns using naive diversification (equal weights).
+  # Inputs:
+  #   returns: A data frame containing asset returns with a 'date' column and individual asset columns.
+  # Output:
+  #   A data frame with 'date' and 'portfolio_return' columns representing portfolio returns.
+  
   # Calculate the number of assets
   num_assets <- ncol(returns) - 1  # Subtract 1 for the 'date' column
   
