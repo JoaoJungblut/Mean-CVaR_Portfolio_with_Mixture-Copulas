@@ -76,6 +76,23 @@ gaussian_portfolio_5y <- RollingWindowEstimation(returns = returns,
 naive_portfolio <- NaiveDiversification(returns)
 
 
+# Saving results
+mixture_portfolio_1y %>% 
+  write_csv("results/mixture_portfolio_1y.csv")
+mixture_portfolio_2y %>% 
+  write_csv("results/mixture_portfolio_2y.csv")
+mixture_portfolio_5y %>% 
+  write_csv("results/mixture_portfolio_5y.csv")
+gaussian_portfolio_1y %>% 
+  write_csv("results/gaussian_portfolio_1y.csv")
+gaussian_portfolio_2y %>% 
+  write_csv("results/gaussian_portfolio_2y.csv")
+gaussian_portfolio_5y %>% 
+  write_csv("results/gaussian_portfolio_5y.csv")
+naive_portfolio %>% 
+  write_csv("results/naive_portfolio.csv")
+
+
 # Convert the portfolio_returns matrix to an xts object
 mixture_portfolio_1y_xts <- xts::xts(mixture_portfolio_1y[,-1], 
                                      order.by = mixture_portfolio_1y$date)
