@@ -156,8 +156,3 @@ SavePerformanceGraphs(data = merged_portfolio_2y,
 SavePerformanceGraphs(data = merged_portfolio_5y, 
                       filename = "figures/etf_performance_5y_graph.png")
 
-
-# Generate graph
-mixture_portfolio_xts <- xts::xts(mixture_portfolio[,-1], 
-                                  order.by = mixture_portfolio$date)
-PerformanceAnalytics::charts.PerformanceSummary(mixture_portfolio_xts)
