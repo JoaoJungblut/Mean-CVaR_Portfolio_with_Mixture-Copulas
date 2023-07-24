@@ -28,98 +28,37 @@ source("data_preprocessing.R")
 source("garch_estimate.R")
 source("copula_estimate.R")
 source("portfolio_optimization.R")
+source("model.R")
 source("performance_metrics.R")
 
 # Loading ETF returns
 returns <- read_csv("data_directory/etfs_rtn.csv")[-1]
 
 # Creating auxiliary matrices and list
-N <- base::ncol(returns) - 1   # Number of assets
 We <- 252 # Window size for GARCH estimation
 Wt <- nrow(returns) # Total size of window
-K <- 10000 # Number of simulations 
-index_vector <- seq(1, Wt, by = We)  # Index vector for rolling optimization
-names_vector <- names(returns)[-1]   # Asset names for reference
-weights <- matrix(nrow = length(index_vector), ncol = N) # Create a matrix to store the weights for each asset in the portfolio
-colnames(weights) <- names_vector # Set the column names of the weights matrix as the asset names
-weights[1,] <-  0 # Initialize the first row of the weights matrix as all zeros
-portfolio_returns <- matrix(nrow = Wt, ncol = 1)  # Matrix to store portfolio returns
-portfolio_returns[1:We, ] <- 0  # Initialize the first K rows as zero
+K <- 1000 # Number of simulations 
 
-set.seed(123)
+# Construct portfolio and benchmarks
+mixture_portfolio <- RollingWindowEstimation(returns = returns,
+                                             We = 252,
+                                             Wt = Wt,
+                                             K = K)
 
-for (i in 2:length(index_vector)){
-  
-  # Establishing window interval in-sample
-  t1 <- index_vector[i - 1]
-  t2 <- index_vector[i] - 1
-  
-  # Convert the in-sample returns data to a matrix format
-  ret_matrix_insample <- as.matrix(returns[t1:t2, -1])
-  
-  # Create a logical vector indicating if each asset has sufficient data
-  assets_with_valid_returns <- !colMeans(is.na(ret_matrix_insample[,]))
-  
-  # Subset the returns matrix and asset names based on assets with sufficient data
-  ret_matrix_insample <- ret_matrix_insample[, assets_with_valid_returns]
-  
-  # Fit the GARCH model to the returns data
-  fit_garch <- FitGarch(returns = ret_matrix_insample)
-  
-  # Optimize the mixture of copulas using the uniform distribution from the GARCH model
-  copulas_mixture <- OptMixtureCopulas(unif_dist = fit_garch$unif_dist, K = K)
-  
-  # Compute simulated standardized residuals using the optimized copula mixture and GARCH coefficients
-  zsim <- ComputeZSim(copula_mixture = copulas_mixture, garch_coef = fit_garch$garch_coef)
-  
-  # Predict future returns using the GARCH model, simulated residuals, and volatility estimates
-  ret_pred <- PredictGarch(returns = ret_matrix_insample, 
-                           sigma = fit_garch$sigma,
-                           zsim = zsim,
-                           garch_coef = fit_garch$garch_coef)$ret_pred
-  
-  # Perform CVaR optimization to determine the optimal portfolio weights
-  weights[i, names_vector[assets_with_valid_returns]] <- CVaROptimization(returns = ret_pred)
-  weights[i, names_vector[!assets_with_valid_returns]] <- 0
-  
-  # Establishing window interval in-sample
-  t3 <- t1 + We
-  t4 <- min(nrow(returns), t2+We)
-  
-  # Convert the realized returns data to a matrix format
-  ret_matrix_outofsample <- as.matrix(returns[t3:t4,-1])
-  ret_matrix_outofsample[, names_vector[!assets_with_valid_returns]] <- 0
-  
-  # Calculate the portfolio returns based on the optimal weights
-  portfolio_returns[t3:t4,] <- RetPortfolio(returns = ret_matrix_outofsample - 0.0003, # minus the transaction costs
-                                            weights = rbind(weights[i,]))
-}
+gaussian_portfolio <- RollingWindowEstimation(returns = returns,
+                                              We = 252,
+                                              Wt = Wt,
+                                              K = K)
+
+naive_portfolio <- NaiveDiversification(returns)
+
 
 # Convert the portfolio_returns matrix to an xts object
-portfolio_returns_xts <- xts::xts(portfolio_returns, order.by = returns[1:Wt,]$date) 
+mixture_portfolio_xts <- xts::xts(mixture_portfolio[,-1], 
+                                  order.by = mixture_portfolio$date)
 
-# Calculate Sharpe ratio
-sharpe_ratio <- PerformanceAnalytics::SharpeRatio.annualized(portfolio_returns_xts)
+gaussian_portfolio_xts <- xts::xts(gaussian_portfolio[,-1], 
+                                   order.by = gaussian_portfolio$date)
 
-# Calculate annualized return
-annualized_return <- PerformanceAnalytics::Return.annualized(portfolio_returns_xts)
-
-# Calculate cumulative return
-cumulative_return <- PerformanceAnalytics::Return.cumulative(portfolio_returns_xts)
-
-# Calculate drawdowns
-drawdown <- PerformanceAnalytics::maxDrawdown(portfolio_returns_xts)
-
-# Print the calculated metrics
-print(sharpe_ratio)
-print(annualized_return)
-print(cumulative_return)
-print(drawdown)
-
-# Generate graph
-PerformanceAnalytics::charts.PerformanceSummary(portfolio_returns_xts)
-
-
-
-portfolio_returns_xts <- xts::xts(returns[,-1], order.by = returns$date) 
-PerformanceAnalytics::charts.PerformanceSummary(portfolio_returns_xts)
+naive_portfolio_xts <- xts::xts(naive_portfolio[(We+1):Wt, -1],
+                                order.by = naive_portfolio[(We+1):Wt,]$date)
