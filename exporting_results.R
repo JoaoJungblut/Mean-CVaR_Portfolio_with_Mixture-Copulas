@@ -1,5 +1,31 @@
+# Function to save a LaTeX table of statistics summary
+SaveSummaryStatsAsTable <- function(df, filename = "tables/summary_stats_table.tex") {
+  library(xtable)
+  
+  # Summary statistics for each ETF's log returns
+  summary_stats <- summary(df[-1]) # Exclude the date column from summary
+  skewness_values <- apply(df[-1], 2, skewness) # Calculate skewness for each column
+  kurtosis_values <- apply(df[-1], 2, kurtosis) # Calculate kurtosis for each column
+  
+  # Create a data frame to store the summary statistics
+  summary_df <- data.frame(Metric = c("Mean", "Std. Dev.", "Min", "1st Qu.", "Median", "3rd Qu.", "Max", "Skewness", "Kurtosis"),
+                           t(summary_stats), skewness_values, kurtosis_values)
+  
+  # Convert the data frame to a LaTeX table using xtable
+  summary_table <- xtable(summary_df,
+                          caption = "Summary Statistics of ETF Returns",
+                          align = c("l", "c", "c", "c", "c", "c", "c", "c", "c"),
+                          digits = c(2, 4, 4, 4))
+  
+  # Save the LaTeX table as .txt file
+  write(as.character(summary_table), file = filename)
+}
+
+
+
 # Function to save performance metrics as a LaTeX table in a .txt file
-SavePerformanceTable <- function(returns, filename = "tables/performance_table.txt") {
+SavePerformanceTable <- function(returns, filename = "tables/performance_table.txt")
+  {
   # Compute performance ratios using the original function
   performance_ratios <- ComputePerformance(returns)
   
@@ -33,19 +59,33 @@ SavePerformanceTable(portfolio_returns, "tables/performance_table.txt")
 
 
 # Function to plot ETF returns and save in a single figure
-PlotReturns <- function(df, filename = "etf_returns_figure.png") {
+PlotReturns <- function(df, filename = "figures/etf_returns_figure.png") {
   
   # Convert the data from wide to long format using 'gather' 
-  df_long <- tidyr::gather(df, key = "ETF", value = "Returns", -"date")
+  df_long <- tidyr::gather(df, key = "Symbol", value = "Returns", -date)
+  
+  colors <- c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
+              "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf")
+  names(colors) <- unique(df_long$ETF)
   
   # Create the plot using 'ggplot2' and 'facet_wrap'
-  p <- ggplot(df_long, aes(x = {{date_column}}, y = LogReturns)) +
+  p <- ggplot(df_long, aes(x = date, y = Returns)) +
     geom_line() +
     labs(title = "ETF Returns",
          x = "Date",
-         y = "Log Returns") +
+         y = "Returns",
+         color = "Symbol") +
     theme_minimal() +
-    facet_wrap(~ ETF, scales = "free_y", ncol = 4)  # Adjust the 'ncol' value as needed
+    facet_wrap(~ ETF, scales = "free_y", ncol = 4) +  # Adjust the 'ncol' value as needed
+    scale_color_manual(values = colors) +
+    theme(strip.text = element_text(size = 12, face = "bold"),
+          axis.title.x = element_text(size = 14, face = "bold"),
+          axis.title.y = element_text(size = 14, face = "bold"),
+          plot.title = element_text(size = 16, face = "bold", hjust = 0.5))
+  
+  # Add title to each graph inside the facets
+  p <- p + labs(title = NULL) + facet_wrap(~ ETF, scales = "free_y", ncol = 4,
+                                           labeller = labeller(ETF = function(x) paste("ETF", x)))
   
   # Save the plot as a file
   ggsave(filename, plot = p, width = 15, height = 10, units = "cm")  # Adjust 'width' and 'height' as needed
