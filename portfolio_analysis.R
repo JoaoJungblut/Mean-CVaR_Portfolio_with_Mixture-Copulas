@@ -97,7 +97,7 @@ RollingWindowEstimation <- function(returns,
   ret_matrix_outofsample[is.na(ret_matrix_outofsample)] <- 0
   
   # Calculate portfolio returns based on the optimal weights 
-  portfolio_returns <- rowSums(ret_matrix_outofsample %*% t(weights)) - 0.0003 # minus the transaction costs
+  portfolio_returns <- rowSums(ret_matrix_outofsample * weights) - 0.0003 # minus the transaction costs
   
   # Combine dates with portfolio returns into a data frame
   result <- data.frame(date = returns[(We + 1):Wt, "date"], 
