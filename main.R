@@ -35,6 +35,7 @@ source("copula_estimate.R")
 source("portfolio_optimization.R")
 source("portfolio_analysis.R")
 source("performance_metrics.R")
+source("exporting_results.R")
 
 
 # Loading ETF returns
@@ -70,7 +71,15 @@ naive_portfolio_xts <- xts::xts(naive_portfolio[(We+1):Wt, -1],
                                 order.by = naive_portfolio[(We+1):Wt,]$date)
 
 
-# Compute Performance
+# Saving results
+SaveSummaryStats(df = returns, filename = "tables/etf_summary_stats_table.txt")
+SavePerformanceTable(returns = portfolios, filename = "tables/etf_performance_table.txt")
+SaveGraphReturns(df = returns, filename = "figures/etf_returns_figure.png")
+SavePerformanceGraphs(data = portfolios, filename = "figures/etf_performance_graph.png")
+
+
+
+
 mixture_portfolio_performance <- ComputePerformance(mixture_portfolio_xts)
 gaussian_portfolio_performance <- ComputePerformance(gaussian_portfolio_xts)
 naive_portfolio_performance <- ComputePerformance(naive_portfolio_xts)
