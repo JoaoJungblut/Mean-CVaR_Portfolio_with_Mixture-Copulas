@@ -1,5 +1,11 @@
 FitGarch <- function(returns){
   
+  # FitGarch: Function to fit GARCH models for each asset's returns and calculate related outputs.
+  # Inputs:
+  #   returns: A data frame containing returns data with the 'date' column and each asset's returns as other columns.
+  # Output:
+  #   A list containing the residuals, sigma forecasts, GARCH coefficients, and uniform distribution values for each asset.
+  
   # Initialize the GARCH specification
   mod_garch <- try(rugarch::ugarchspec(variance.model = list(model = "sGARCH", 
                                                              garchOrder = c(1, 1),
@@ -41,6 +47,16 @@ FitGarch <- function(returns){
 
 
 PredictGarch <- function(returns, sigma, zsim, garch_coef) {
+  
+  # PredictGarch: Function to predict future returns using GARCH model, simulated residuals, and GARCH coefficients.
+  # Inputs:
+  #   returns: A data frame containing returns data with the 'date' column and each asset's returns as other columns.
+  #   sigma: A matrix containing GARCH model's sigma forecasts for each asset.
+  #   zsim: A matrix containing simulated standardized residuals for each asset.
+  #   garch_coef: A list containing GARCH model coefficients for each asset.
+  # Output:
+  #   A matrix containing the predicted future returns for each asset based on the GARCH model.
+  
   # Initialize matrices to store predicted values
   ret_pred <- matrix(nrow = nrow(zsim), ncol = ncol(returns))
   
