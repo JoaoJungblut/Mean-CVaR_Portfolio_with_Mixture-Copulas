@@ -1,5 +1,5 @@
 # Function to save a LaTeX table of statistics summary
-SaveSummaryStatsAsTable <- function(df, filename = "tables/summary_stats_table.tex") {
+SaveSummaryStats <- function(df, filename = "tables/summary_stats_table.tex") {
   library(xtable)
   
   # Summary statistics for each ETF's log returns
@@ -58,8 +58,9 @@ SavePerformanceTable <- function(returns, filename = "tables/performance_table.t
 SavePerformanceTable(portfolio_returns, "tables/performance_table.txt")
 
 
+
 # Function to plot ETF returns and save in a single figure
-PlotReturns <- function(df, filename = "figures/etf_returns_figure.png") {
+SaveGraphReturns <- function(df, filename = "figures/etf_returns_figure.png") {
   
   # Convert the data from wide to long format using 'gather' 
   df_long <- tidyr::gather(df, key = "Symbol", value = "Returns", -date)
@@ -91,3 +92,19 @@ PlotReturns <- function(df, filename = "figures/etf_returns_figure.png") {
   ggsave(filename, plot = p, width = 15, height = 10, units = "cm")  # Adjust 'width' and 'height' as needed
 }
 
+
+
+# Function to generate and save PerformanceSummary graph
+SavePerformanceGraph <- function(data, filename = "figures/performance_graph.png") {
+  
+  # Create the PerformanceSummary chart
+  chart <- charts.PerformanceSummary(data)
+  
+  # Convert the chart to a ggplot object
+  gg_chart <- as.ggplot(chart)
+  
+  # Save the ggplot to a file
+  ggsave(filename, gg_chart)
+  
+  cat("Performance graph saved to:", filename, "\n")
+}
