@@ -130,8 +130,10 @@ GaussCopula <- function(unif_dist, K = 10000){
   #   A matrix containing the generated Gaussian copula variates.
   
   Gcop <- matrix(0, nrow = K, ncol = ncol(unif_dist))
+  copn <- copula::normalCopula(param = 0.5, dim = ncol(unif_dist))
+  param <- copula::fitCopula(copn, unif_dist, "ml", estimate.variance = FALSE)@estimate 
   Gcop[,] <- copula::rCopula(n = K, 
-                             copula = normalCopula(param = 0.5, 
+                             copula = normalCopula(param = param, 
                                                    dim = ncol(unif_dist)))
   return(Gcop)
 }
