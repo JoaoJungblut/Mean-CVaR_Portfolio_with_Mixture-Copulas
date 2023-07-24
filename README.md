@@ -13,7 +13,7 @@ This repository contains the code and documentation for my final course project 
   - **copula_estimate.R**: This script contains functions for estimating mixture copulas for the given dataset, which are used for capturing the joint distribution of the ETF returns.
   - **portfolio_optimization.R**: This script contains functions for implementing the portfolio optimization algorithm using the worst-case CVaR approach, aiming to find an optimal allocation of assets that minimizes CVaR.
   - **portfolio_analysis.R**: This script contains functions for estimating portfolios weights in a rolling window.
-  - **performance_metrics.R**: This script contains functions for calculating various performance metrics for the optimized portfolios, helping to evaluate the efficiency and risk of the portfolio strategies.
+  - **performance_metrics.R**: This script contains a function for calculating various performance metrics for the optimized portfolios, helping to evaluate the efficiency and risk of the portfolio strategies.
   - **exporting_results.R**: This script contains functions to export the results of the analysis, including summary statistics, performance tables, and graphs.
 
 
