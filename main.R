@@ -49,11 +49,13 @@ K <- 1000 # Number of simulations
 mixture_portfolio <- RollingWindowEstimation(returns = returns,
                                              We = 252,
                                              Wt = Wt,
-                                             K = K)
+                                             K = K,
+                                             Mixture = TRUE)
 gaussian_portfolio <- RollingWindowEstimation(returns = returns,
                                               We = 252,
                                               Wt = Wt,
-                                              K = K)
+                                              K = K,
+                                              Mixture = FALSE)
 naive_portfolio <- NaiveDiversification(returns)
 
 
