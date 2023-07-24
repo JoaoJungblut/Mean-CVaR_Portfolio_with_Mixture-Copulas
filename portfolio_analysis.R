@@ -20,6 +20,9 @@ RollingWindowEstimation <- function(returns,
   
   # Define a function to perform computations for each rolling window
   process_window <- function(i) {
+    
+    message(paste(i - We, "of", Wt - We))
+    
     t1 <- i - We
     t2 <- i - 1
     
@@ -35,25 +38,48 @@ RollingWindowEstimation <- function(returns,
     # Fit the GARCH model to the returns data
     fit_garch <- FitGarch(returns = ret_matrix_insample)
     
-    # Choose the appropriate copula based on Mixture
-    association_measure <- if (Mixture) {
-      OptMixtureCopulas(unif_dist = fit_garch$unif_dist, K = K)
-    } else {
-      GaussCopula(unif_dist = fit_garch$unif_dist, K = K)
+    # Define a function to compute the association measure with error handling
+    association_measure_with_error_handling <- function(fit_garch, Mixture, K) {
+      tryCatch(
+        {
+          if (Mixture) {
+            association_measure <- OptMixtureCopulas(unif_dist = fit_garch$unif_dist, K = K)
+          } else {
+            association_measure <- GaussCopula(unif_dist = fit_garch$unif_dist, K = K)
+          }
+        },
+        error = function(e) {
+          # In case of an error, return NULL
+          association_measure <- NULL
+        }
+      )
     }
     
-    # Compute simulated standardized residuals using the optimized copula mixture and GARCH coefficients
-    zsim <- ComputeZSim(copula_mixture = association_measure, 
-                        garch_coef = fit_garch$garch_coef)
+    # Compute the association measure with error handling
+    association_measure <- association_measure_with_error_handling(fit_garch, Mixture, K)
     
-    # Predict future returns using the GARCH model, simulated residuals, and volatility estimates
-    ret_pred <- PredictGarch(returns = ret_matrix_insample, 
-                             sigma = fit_garch$sigma,
-                             zsim = zsim,
-                             garch_coef = fit_garch$garch_coef)
-    
-    # Perform CVaR optimization to determine the optimal portfolio weights
-    weights <- CVaROptimization(returns = ret_pred)
+    # Check if association_measure is NULL (i.e., an error occurred)
+    if (is.null(association_measure)) {
+      # Set weights to zero if an error occurred
+      weights <- rep(0, ncol(returns[,-1]))
+    } else {
+      # Compute simulated standardized residuals using the optimized copula mixture and GARCH coefficients
+      zsim <- ComputeZSim(copula_mixture = association_measure, 
+                          garch_coef = fit_garch$garch_coef)
+      
+      # Predict future returns using the GARCH model, simulated residuals, and volatility estimates
+      ret_pred <- PredictGarch(returns = ret_matrix_insample, 
+                               sigma = fit_garch$sigma,
+                               zsim = zsim,
+                               garch_coef = fit_garch$garch_coef)
+      
+      # Perform CVaR optimization to determine the optimal portfolio weights
+      names_vector <- names(returns[,-1])
+      weights <- matrix(nrow = 1, ncol = ncol(returns[,-1])) 
+      colnames(weights) <- names_vector
+      weights[1, names_vector[assets_with_valid_returns]] <- CVaROptimization(returns = ret_pred)
+      weights[1, names_vector[!assets_with_valid_returns]] <- 0
+    }
     
     return(weights)
   }
@@ -67,14 +93,11 @@ RollingWindowEstimation <- function(returns,
   # Create a matrix with realized returns for out-of-sample period
   ret_matrix_outofsample <- as.matrix(returns[(We + 1):Wt, -1])
   
-  # Calculate portfolio returns based on the optimal weights for each rolling window
-  portfolio_returns <- apply(ret_matrix_outofsample, 1, function(row) {
-    # Remove rows with NAs from ret_matrix_outofsample
-    row_without_na <- row[complete.cases(row)]
-    # Calculate portfolio return for this window
-    portfolio_return <- sum(row_without_na * weights)
-    return(portfolio_return)
-  }) - 0.0003 # minus the transaction costs
+  # Replace NA values with 0
+  ret_matrix_outofsample[is.na(ret_matrix_outofsample)] <- 0
+  
+  # Calculate portfolio returns based on the optimal weights 
+  portfolio_returns <- rowSums(ret_matrix_outofsample %*% t(weights)) - 0.0003 # minus the transaction costs
   
   # Combine dates with portfolio returns into a data frame
   result <- data.frame(date = returns[(We + 1):Wt, "date"], 
