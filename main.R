@@ -31,7 +31,7 @@ source("data_preprocessing.R")
 source("garch_estimate.R")
 source("copula_estimate.R")
 source("portfolio_optimization.R")
-source("model.R")
+source("portfolio_analysis.R.R")
 source("performance_metrics.R")
 
 
