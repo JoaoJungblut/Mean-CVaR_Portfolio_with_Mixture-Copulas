@@ -21,14 +21,6 @@ CVaROptimization <- function(returns, Alpha = 0.025, TargetReturn = 0.0003) { # 
 }
 
 
-RetPortfolio <- function(returns, weights){
-  
-  portfolio_returns <- returns %*% t(weights)
-  
-  return(portfolio_returns)
-}
-
-
 NaiveDiversification <- function(returns) {
   # Calculate the number of assets
   num_assets <- ncol(returns) - 1  # Subtract 1 for the 'date' column
