@@ -42,52 +42,82 @@ source("exporting_results.R")
 returns <- read_csv("data_directory/etfs_rtn.csv")[-1]
 
 
-# Creating auxiliary matrices and list
-We <- 252 # Window size for GARCH estimation
-Wt <- nrow(returns) # Total size of window
-K <- 1000 # Number of simulations 
-
-
 # Construct portfolio and benchmarks
-mixture_portfolio <- RollingWindowEstimation(returns = returns,
-                                             We = 252,
-                                             Wt = Wt,
-                                             K = K,
-                                             Mixture = TRUE)
-gaussian_portfolio <- RollingWindowEstimation(returns = returns,
-                                              We = 252,
-                                              Wt = Wt,
-                                              K = K,
-                                              Mixture = FALSE)
+mixture_portfolio_1y <- RollingWindowEstimation(returns = returns,
+                                                We = 252,
+                                                Wt = nrow(returns),
+                                                K = 1000,
+                                                Mixture = TRUE)
+mixture_portfolio_2y <- RollingWindowEstimation(returns = returns,
+                                                We = 504,
+                                                Wt = nrow(returns),
+                                                K = 1000,
+                                                Mixture = TRUE)
+mixture_portfolio_5y <- RollingWindowEstimation(returns = returns,
+                                                We = 1260,
+                                                Wt = nrow(returns),
+                                                K = 1000,
+                                                Mixture = TRUE)
+gaussian_portfolio_1y <- RollingWindowEstimation(returns = returns,
+                                                 We = 252,
+                                                 Wt = nrow(returns),
+                                                 K = 1000,
+                                                 Mixture = FALSE)
+gaussian_portfolio_2y <- RollingWindowEstimation(returns = returns,
+                                                 We = 504,
+                                                 Wt = nrow(returns),
+                                                 K = 1000,
+                                                 Mixture = FALSE)
+gaussian_portfolio_5y <- RollingWindowEstimation(returns = returns,
+                                                 We = 1260,
+                                                 Wt = nrow(returns),
+                                                 K = 1000,
+                                                 Mixture = FALSE)
 naive_portfolio <- NaiveDiversification(returns)
 
 
 # Convert the portfolio_returns matrix to an xts object
-mixture_portfolio_xts <- xts::xts(mixture_portfolio[,-1], 
-                                  order.by = mixture_portfolio$date)
-gaussian_portfolio_xts <- xts::xts(gaussian_portfolio[,-1], 
-                                   order.by = gaussian_portfolio$date)
+mixture_portfolio_1y_xts <- xts::xts(mixture_portfolio_1y[,-1], 
+                                     order.by = mixture_portfolio$date)
+mixture_portfolio_2y_xts <- xts::xts(mixture_portfolio_2y[,-1], 
+                                     order.by = mixture_portfolio$date)
+mixture_portfolio_5y_xts <- xts::xts(mixture_portfolio_5_y[,-1], 
+                                     order.by = mixture_portfolio$date)
+gaussian_portfolio_1y_xts <- xts::xts(gaussian_portfolio_1y[,-1], 
+                                      order.by = gaussian_portfolio$date)
+gaussian_portfolio_2y_xts <- xts::xts(gaussian_portfolio_2y[,-1], 
+                                      order.by = gaussian_portfolio$date)
+gaussian_portfolio_5y_xts <- xts::xts(gaussian_portfolio_5y[,-1], 
+                                      order.by = gaussian_portfolio$date)
 naive_portfolio_xts <- xts::xts(naive_portfolio[(We+1):Wt, -1],
                                 order.by = naive_portfolio[(We+1):Wt,]$date)
 
 
 # Compute performance
-mixture_portfolio_performance <- ComputePerformance(mixture_portfolio_xts)
-gaussian_portfolio_performance <- ComputePerformance(gaussian_portfolio_xts)
+mixture_portfolio_1y_performance <- ComputePerformance(mixture_portfolio_1y_xts)
+mixture_portfolio_2y_performance <- ComputePerformance(mixture_portfolio_2y_xts)
+mixture_portfolio_5y_performance <- ComputePerformance(mixture_portfolio_5y_xts)
+gaussian_portfolio_1y_performance <- ComputePerformance(gaussian_portfolio_1y_xts)
+gaussian_portfolio_2y_performance <- ComputePerformance(gaussian_portfolio_2y_xts)
+gaussian_portfolio_5y_performance <- ComputePerformance(gaussian_portfolio_5y_xts)
 naive_portfolio_performance <- ComputePerformance(naive_portfolio_xts)
 
 
 # Merge the three performance results into one list
-merged_performance <- list(
-  mixture = mixture_portfolio_performance,
-  gaussian = gaussian_portfolio_performance,
+all_performance <- list(
+  mixture_1y = mixture_portfolio_1y_performance,
+  mixture_2y = mixture_portfolio_2y_performance,
+  mixture_5y = mixture_portfolio_5y_performance,
+  gaussian_1y = gaussian_portfolio_1y_performance,
+  gaussian_2y = gaussian_portfolio_2y_performance,
+  gaussian_5y = gaussian_portfolio_5y_performance,
   naive = naive_portfolio_performance
 )
 
 
 # Saving results
 SaveSummaryStats(df = returns, filename = "tables/etf_summary_stats_table.txt")
-SavePerformanceTable(returns = portfolios, filename = "tables/etf_performance_table.txt")
+SavePerformanceTable(returns = all_performance, filename = "tables/etf_performance_table.txt")
 SaveGraphReturns(df = returns, filename = "figures/etf_returns_figure.png")
 SavePerformanceGraphs(data = portfolios, filename = "figures/etf_performance_graph.png")
 
