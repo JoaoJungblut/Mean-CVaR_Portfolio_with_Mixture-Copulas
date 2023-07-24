@@ -24,6 +24,8 @@ library(Rsolnp)        # Nonlinear optimization
 library(fPortfolio)    # Portfolio optimization
 library(PerformanceAnalytics) # Performance metrics
 library(xts) # Time series object
+library(xtable) # Create LaTex tables
+library(ggplot) # Produce graph 
 
 
 # Importing modules
@@ -31,7 +33,7 @@ source("data_preprocessing.R")
 source("garch_estimate.R")
 source("copula_estimate.R")
 source("portfolio_optimization.R")
-source("portfolio_analysis.R.R")
+source("portfolio_analysis.R")
 source("performance_metrics.R")
 
 
