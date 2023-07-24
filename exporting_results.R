@@ -31,40 +31,42 @@ SaveSummaryStats <- function(df, filename = "tables/summary_stats_table.txt") {
 
 
 
-SavePerformanceTable <- function(returns, filename = "tables/performance_table.txt") {
+SavePerformanceTable <- function(merged_performance, filename = "tables/performance_table.txt") {
   
   # SavePerformanceTable: Function to save a LaTeX table of portfolio performance metrics.
   # Inputs:
-  #   returns: A data frame containing asset returns with a 'date' column and individual asset columns.
+  #   merged_performance: A list containing performance metrics for different portfolio strategies.
   #   filename: File path to save the LaTeX table (default = "tables/performance_table.txt").
   
-  # Compute performance ratios using the original function
-  performance_ratios <- ComputePerformance(returns)
+  # Performance metrics names
+  metric_names <- c("Annualized Return",
+                    "Annualized Std. Dev.",
+                    "Sharpe Ratio (Annualized)",
+                    "Sortino Ratio",
+                    "Omega Sharpe Ratio",
+                    "VaR (97.5%)",
+                    "CVaR (97.5%)",
+                    "Semi-Deviation",
+                    "Worst Drawdown")
   
-  # Create a data frame to store the performance metrics and corresponding names
+  # Create a data frame to store the performance metrics and corresponding values
   performance_df <- data.frame(
-    Metric = c("Annualized Return",
-               "Annualized Std. Dev.",
-               "Sharpe Ratio (Annualized)",
-               "Sortino Ratio",
-               "Omega Sharpe Ratio",
-               "VaR (97.5%)",
-               "CVaR (97.5%)",
-               "Semi-Deviation",
-               "Worst Drawdown"),
-    Value = performance_ratios
+    Metric = metric_names,
+    Mixture = merged_performance$mixture,
+    Gaussian = merged_performance$gaussian,
+    Naive = merged_performance$naive
   )
   
   # Convert the data frame to a LaTeX table using xtable
   performance_table <- xtable(performance_df,
                               caption = "Portfolio Performance Metrics",
-                              align = c("l", "c"),
-                              digits = c(2, 4))
+                              align = c("l", "c", "c", "c"),
+                              digits = c(2, 4, 4, 4))
   
   # Save the LaTeX table as .txt file
   write(as.character(performance_table), file = filename)
   
-  cat("Performance graph saved to:", filename, "\n")
+  cat("Performance table saved to:", filename, "\n")
 }
 
 
