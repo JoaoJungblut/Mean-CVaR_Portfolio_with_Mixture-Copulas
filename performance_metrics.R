@@ -1,5 +1,11 @@
-# Function to measure portfolio performance
 ComputePerformance <- function(returns) {
+  
+  # ComputePerformance: Function to measure portfolio performance using various performance ratios.
+  # Inputs:
+  #   returns: A data frame containing asset returns with a 'date' column and individual asset columns.
+  # Output:
+  #   A list of computed performance ratios.
+  
   
   # Compute annualized mean excess return
   ret_annualized <- PerformanceAnalytics::Return.annualized(returns)
