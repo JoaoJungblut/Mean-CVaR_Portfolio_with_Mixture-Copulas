@@ -25,7 +25,7 @@ library(fPortfolio)    # Portfolio optimization
 library(PerformanceAnalytics) # Performance metrics
 library(xts) # Time series object
 library(xtable) # Create LaTex tables
-library(ggplot) # Produce graph 
+library(ggplot2) # Produce graph 
 
 
 # Importing modules
