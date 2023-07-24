@@ -1,5 +1,15 @@
-# Negative log-likelihood function for estimating copula weights and parameters
 LLCG <- function(params, U, copC, copG, copt){ 
+  
+  # LLCG: Negative log-likelihood function for estimating copula weights and parameters.
+  # Inputs:
+  #   params: A numeric vector containing the initial values for copula parameters and weights.
+  #   U: A matrix containing the uniform (0 to 1) marginals of the data for each copula.
+  #   copC: A copula object (Clayton copula) with initial parameters to be estimated.
+  #   copG: A copula object (Gumbel copula) with initial parameters to be estimated.
+  #   copt: A copula object (t copula) with initial parameters to be estimated.
+  # Output:
+  #   The negative log-likelihood value to be optimized for estimating copula parameters and weights.
+  
   # Set copula parameters
   slot(copC, "parameters") <- params[1]    # Initial Clayton parameter
   slot(copG, "parameters") <- params[2]    # Initial Gumbel parameter 
@@ -25,14 +35,34 @@ LLCG <- function(params, U, copC, copG, copt){
 }
 
 
-# Constrain function to ensure sum(weights) = 1
+
 eqfun <- function(params, U, copC, copG, copt){ 
+  
+  # eqfun: Constrain function to ensure sum of weights = 1.
+  # Inputs:
+  #   params: A numeric vector containing the values of copula weights to be constrained.
+  #   U: A matrix containing the uniform (0 to 1) marginals of the data for each copula.
+  #   copC: A copula object (Clayton copula) used in the likelihood function.
+  #   copG: A copula object (Gumbel copula) used in the likelihood function.
+  #   copt: A copula object (t copula) used in the likelihood function.
+  # Output:
+  #   The sum of the copula weights (pi1, pi2, pi3) to be constrained.
+  
   z <- params[5] + params[6] + params[7]
   return(z)
 }
 
 
+
 OptMixtureCopulas <- function(unif_dist, K = 10000) {
+  
+  # OptMixtureCopulas: Function to optimize the mixture of copulas and generate copula variates.
+  # Inputs:
+  #   unif_dist: A matrix of uniform marginals (0 to 1) for each copula.
+  #   K: Number of copula variates to generate (default = 10000).
+  # Output:
+  #   A matrix containing the generated copula variates using the optimized mixture of copulas.
+  
   # Initialize copula objects
   copt <- copula::tCopula(param = 0.5, dim = ncol(unif_dist))  # t-Copula with parameter 0.5
   copC <- copula::claytonCopula(2, dim = ncol(unif_dist))      # Clayton copula with delta = 2
@@ -89,7 +119,16 @@ OptMixtureCopulas <- function(unif_dist, K = 10000) {
 }
 
 
+
 GaussCopula <- function(unif_dist, K = 10000){
+  
+  # GaussCopula: Function to generate Gaussian copula variates.
+  # Inputs:
+  #   unif_dist: A matrix of uniform marginals (0 to 1) for each copula.
+  #   K: Number of copula variates to generate (default = 10000).
+  # Output:
+  #   A matrix containing the generated Gaussian copula variates.
+  
   Gcop <- matrix(0, nrow = K, ncol = ncol(unif_dist))
   Gcop[,] <- copula::rCopula(n = K, 
                              copula = normalCopula(param = 0.5, 
@@ -98,7 +137,16 @@ GaussCopula <- function(unif_dist, K = 10000){
 }
 
 
+
 ComputeZSim <- function(copula_mixture, garch_coef) {
+  
+  # ComputeZSim: Function to compute simulated standardized residuals (zsim).
+  # Inputs:
+  #   copula_mixture: A matrix containing the copula mixture values.
+  #   garch_coef: A list of GARCH coefficients for each copula.
+  # Output:
+  #   A matrix containing the computed simulated standardized residuals (zsim).
+  
   # Create an empty matrix to store zsim values
   zsim <- matrix(nrow = nrow(copula_mixture), ncol = ncol(copula_mixture))
   
