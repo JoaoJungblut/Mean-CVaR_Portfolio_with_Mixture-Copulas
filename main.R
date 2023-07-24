@@ -78,18 +78,18 @@ naive_portfolio <- NaiveDiversification(returns)
 
 # Convert the portfolio_returns matrix to an xts object
 mixture_portfolio_1y_xts <- xts::xts(mixture_portfolio_1y[,-1], 
-                                     order.by = mixture_portfolio$date)
+                                     order.by = mixture_portfolio_1y$date)
 mixture_portfolio_2y_xts <- xts::xts(mixture_portfolio_2y[,-1], 
-                                     order.by = mixture_portfolio$date)
+                                     order.by = mixture_portfolio_2y$date)
 mixture_portfolio_5y_xts <- xts::xts(mixture_portfolio_5_y[,-1], 
-                                     order.by = mixture_portfolio$date)
+                                     order.by = mixture_portfolio_5y$date)
 gaussian_portfolio_1y_xts <- xts::xts(gaussian_portfolio_1y[,-1], 
-                                      order.by = gaussian_portfolio$date)
+                                      order.by = gaussian_portfolio_1y$date)
 gaussian_portfolio_2y_xts <- xts::xts(gaussian_portfolio_2y[,-1], 
-                                      order.by = gaussian_portfolio$date)
+                                      order.by = gaussian_portfolio_2y$date)
 gaussian_portfolio_5y_xts <- xts::xts(gaussian_portfolio_5y[,-1], 
-                                      order.by = gaussian_portfolio$date)
-naive_portfolio_xts <- xts::xts(naive_portfolio[(We+1):Wt, -1],
+                                      order.by = gaussian_portfolio_5y$date)
+naive_portfolio_xts <- xts::xts(naive_portfolio[(253):Wncol(returns), -1],
                                 order.by = naive_portfolio[(We+1):Wt,]$date)
 
 
@@ -114,15 +114,33 @@ all_performance <- list(
   naive = naive_portfolio_performance
 )
 
+merged_portfolio_1y <- merge.xts(mixture_portfolio_1y_xts,
+                                 gaussian_portfolio_1y_xts,
+                                 naive_portfolio_xts, join = "inner")
+merged_portfolio_2y <- merge.xts(mixture_portfolio_2y_xts,
+                                 gaussian_portfolio_2y_xts,
+                                 naive_portfolio_xts, join = "inner")
+merged_portfolio_5y <- merge.xts(mixture_portfolio_5y_xts,
+                                 gaussian_portfolio_5y_xts,
+                                 naive_portfolio_xts, join = "inner")
+
 
 # Saving results
-SaveSummaryStats(df = returns, filename = "tables/etf_summary_stats_table.txt")
-SavePerformanceTable(returns = all_performance, filename = "tables/etf_performance_table.txt")
-SaveGraphReturns(df = returns, filename = "figures/etf_returns_figure.png")
-SavePerformanceGraphs(data = portfolios, filename = "figures/etf_performance_graph.png")
+SaveSummaryStats(df = returns, 
+                 filename = "tables/etf_summary_stats_table.txt")
+SavePerformanceTable(returns = all_performance, 
+                     filename = "tables/etf_performance_table.txt")
+SaveGraphReturns(df = returns, 
+                 filename = "figures/etf_returns_figure.png")
+SavePerformanceGraphs(data = merged_portfolio_1y, 
+                      filename = "figures/etf_performance_1y_graph.png")
+SavePerformanceGraphs(data = merged_portfolio_2y, 
+                      filename = "figures/etf_performance_2y_graph.png")
+SavePerformanceGraphs(data = merged_portfolio_5y, 
+                      filename = "figures/etf_performance_5y_graph.png")
 
 
 # Generate graph
+mixture_portfolio_xts <- xts::xts(mixture_portfolio[,-1], 
+                                  order.by = mixture_portfolio$date)
 PerformanceAnalytics::charts.PerformanceSummary(mixture_portfolio_xts)
-PerformanceAnalytics::charts.PerformanceSummary(gaussian_portfolio_xts)
-PerformanceAnalytics::charts.PerformanceSummary(naive_portfolio_xts)
