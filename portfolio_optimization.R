@@ -29,4 +29,22 @@ RetPortfolio <- function(returns, weights){
 }
 
 
+NaiveDiversification <- function(returns) {
+  # Calculate the number of assets
+  num_assets <- ncol(returns) - 1  # Subtract 1 for the 'date' column
+  
+  # Calculate the equal weights for each asset
+  weight_per_asset <- 1 / num_assets
+  
+  # Extract the returns data without the 'date' column
+  returns_df <- returns[, -1]  # Drop the 'date' column
+  
+  # Calculate portfolio returns for each date
+  portfolio_returns <- rowMeans(returns_df, na.rm = TRUE) * weight_per_asset
+  
+  # Create a new data frame with the date and portfolio returns
+  portfolio_returns_df <- data.frame(date = returns$date, portfolio_return = portfolio_returns)
+  
+  return(portfolio_returns_df)
+}
 

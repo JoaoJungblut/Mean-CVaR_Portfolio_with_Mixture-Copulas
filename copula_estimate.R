@@ -91,7 +91,9 @@ OptMixtureCopulas <- function(unif_dist, K = 10000) {
 
 GaussCopula <- function(unif_dist, K = 10000){
   Gcop <- matrix(0, nrow = K, ncol = ncol(unif_dist))
-  Gcop[,] <- copula::rCopula(n = nsim, copula = normalCopula(param = cop_pars[[i]], dim = 8))
+  Gcop[,] <- copula::rCopula(n = K, 
+                             copula = normalCopula(param = 0.5, 
+                                                   dim = ncol(unif_dist)))
   return(Gcop)
 }
 
