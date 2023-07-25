@@ -38,32 +38,10 @@ RollingWindowEstimation <- function(returns,
     # Fit the GARCH model to the returns data
     fit_garch <- FitGarch(returns = ret_matrix_insample)
     
-    association_measure_with_error_handling <- function(unif_dist, Mixture, K) {
-      association_measure <- NULL
-      
-      tryCatch(
-        {
-          if (Mixture) {
-            association_measure <- OptMixtureCopulas(unif_dist = unif_dist, K = K)
-          } else {
-            association_measure <- GaussCopula(unif_dist = unif_dist, K = K)
-          }
-        },
-        warning = function(w) {
-          if (!grepl("L-BFGS-B needs finite values of 'fn'", w$message)) {
-            # Trata todos os outros avisos normalmente
-            warning(w)
-          }
-          # Ignora o aviso "L-BFGS-B needs finite values of 'fn'"
-        }
-      )
-      
-      return(association_measure)
-    }
-    
-    
     # Define a function to compute the association measure with error handling
     association_measure_with_error_handling <- function(unif_dist, Mixture, K) {
+      unif_dist <- ifelse(unif_dist < 0.01, 0.01, unif_dist) # avoid convergence issues
+      unif_dist <- ifelse(unif_dist > 0.99, 0.99, unif_dist) # avoid convergence issues
       tryCatch(
         {
           if (Mixture) {
@@ -82,7 +60,6 @@ RollingWindowEstimation <- function(returns,
       
       return(association_measure)
     }
-    
     
     # Compute the association measure with error handling
     association_measure <- association_measure_with_error_handling(unif_dist = fit_garch$unif_dist,
