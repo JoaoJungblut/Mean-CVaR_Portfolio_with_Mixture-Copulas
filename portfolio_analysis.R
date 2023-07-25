@@ -39,13 +39,13 @@ RollingWindowEstimation <- function(returns,
     fit_garch <- FitGarch(returns = ret_matrix_insample)
     
     # Define a function to compute the association measure with error handling
-    association_measure_with_error_handling <- function(fit_garch, Mixture, K) {
+    association_measure_with_error_handling <- function(unif_dist, Mixture, K) {
       tryCatch(
         {
           if (Mixture) {
-            association_measure <- OptMixtureCopulas(unif_dist = fit_garch$unif_dist, K = K)
+            association_measure <- OptMixtureCopulas(unif_dist = unif_dist, K = K)
           } else {
-            association_measure <- GaussCopula(unif_dist = fit_garch$unif_dist, K = K)
+            association_measure <- GaussCopula(unif_dist = unif_dist, K = K)
           }
         },
         error = function(e) {
@@ -56,7 +56,9 @@ RollingWindowEstimation <- function(returns,
     }
     
     # Compute the association measure with error handling
-    association_measure <- association_measure_with_error_handling(fit_garch, Mixture, K)
+    association_measure <- association_measure_with_error_handling(unif_dist = fit_garch$unif_dist,
+                                                                   Mixture = Mixture, 
+                                                                   K = K)
     
     # Check if association_measure is NULL (i.e., an error occurred)
     if (is.null(association_measure)) {
