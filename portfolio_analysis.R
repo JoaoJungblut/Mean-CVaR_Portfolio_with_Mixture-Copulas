@@ -50,9 +50,13 @@ RollingWindowEstimation <- function(returns,
         },
         error = function(e) {
           # In case of an error, return NULL
-          association_measure <- NULL
+          warning("An error occurred while computing the association measure:", 
+                  conditionMessage(e))
+          association_measure <- NULL 
         }
       )
+      
+      return(association_measure)
     }
     
     # Compute the association measure with error handling
