@@ -26,6 +26,7 @@ library(PerformanceAnalytics) # Performance metrics
 library(xts) # Time series object
 library(xtable) # Create LaTex tables
 library(ggplot2) # Produce graph 
+library(parallel) # Do parallel computations
 
 
 # Importing modules
@@ -40,6 +41,14 @@ source("exporting_results.R")
 
 # Loading ETF returns
 returns <- read_csv("data_directory/etfs_rtn.csv")[-1]
+
+
+# Number of cores
+cores <- detectCores()
+
+
+# Create a cluster
+cl <- makeCluster(cores/2)
 
 
 # Construct portfolio and benchmarks
@@ -74,6 +83,10 @@ gaussian_portfolio_5y <- RollingWindowEstimation(returns = returns,
                                                  K = 1000,
                                                  Mixture = FALSE)
 naive_portfolio <- NaiveDiversification(returns)
+
+
+# Stop the cluster
+stopCluster(cl)
 
 
 # Saving results
