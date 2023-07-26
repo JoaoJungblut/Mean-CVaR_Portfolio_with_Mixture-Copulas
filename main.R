@@ -98,7 +98,7 @@ mixture_portfolio_1y_xts <- xts::xts(mixture_portfolio_1y[,-1],
                                      order.by = mixture_portfolio_1y$date)
 mixture_portfolio_2y_xts <- xts::xts(mixture_portfolio_2y[,-1], 
                                      order.by = mixture_portfolio_2y$date)
-mixture_portfolio_5y_xts <- xts::xts(mixture_portfolio_5_y[,-1], 
+mixture_portfolio_5y_xts <- xts::xts(mixture_portfolio_5y[,-1], 
                                      order.by = mixture_portfolio_5y$date)
 gaussian_portfolio_1y_xts <- xts::xts(gaussian_portfolio_1y[,-1], 
                                       order.by = gaussian_portfolio_1y$date)
@@ -106,8 +106,8 @@ gaussian_portfolio_2y_xts <- xts::xts(gaussian_portfolio_2y[,-1],
                                       order.by = gaussian_portfolio_2y$date)
 gaussian_portfolio_5y_xts <- xts::xts(gaussian_portfolio_5y[,-1], 
                                       order.by = gaussian_portfolio_5y$date)
-naive_portfolio_xts <- xts::xts(naive_portfolio[(253):col(returns), -1],
-                                order.by = naive_portfolio[(We+1):Wt,]$date)
+naive_portfolio_xts <- xts::xts(naive_portfolio[253:ncol(returns), -1],
+                                order.by = naive_portfolio[253:ncol(returns),1])
 
 
 # Compute performance
@@ -133,7 +133,7 @@ all_performance <- list(
 
 merged_portfolio_1y <- merge.xts(mixture_portfolio_1y_xts,
                                  gaussian_portfolio_1y_xts,
-                                 naive_portfolio_xts, join = "inner")
+                                 naive_portfolio_xts)
 merged_portfolio_2y <- merge.xts(mixture_portfolio_2y_xts,
                                  gaussian_portfolio_2y_xts,
                                  naive_portfolio_xts, join = "inner")
