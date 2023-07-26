@@ -106,7 +106,7 @@ gaussian_portfolio_2y_xts <- xts::xts(gaussian_portfolio_2y[,-1],
                                       order.by = gaussian_portfolio_2y$date)
 gaussian_portfolio_5y_xts <- xts::xts(gaussian_portfolio_5y[,-1], 
                                       order.by = gaussian_portfolio_5y$date)
-naive_portfolio_xts <- xts::xts(naive_portfolio[(253):Wncol(returns), -1],
+naive_portfolio_xts <- xts::xts(naive_portfolio[(253):col(returns), -1],
                                 order.by = naive_portfolio[(We+1):Wt,]$date)
 
 
