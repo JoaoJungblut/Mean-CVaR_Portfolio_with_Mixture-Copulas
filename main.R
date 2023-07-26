@@ -26,7 +26,6 @@ library(PerformanceAnalytics) # Performance metrics
 library(xts) # Time series object
 library(xtable) # Create LaTex tables
 library(ggplot2) # Produce graph 
-library(parallel) # Do parallel computations
 
 
 # Importing modules
