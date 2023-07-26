@@ -49,7 +49,7 @@ NaiveDiversification <- function(returns) {
   returns_df <- returns[, -1]  # Drop the 'date' column
   
   # Calculate portfolio returns for each date
-  portfolio_returns <- rowSums(returns_df, na.rm = TRUE) * weight_per_asset
+  portfolio_returns <- (rowSums(returns_df, na.rm = TRUE) * weight_per_asset) - 0.0003 # minus transaction costs
   
   # Create a new data frame with the date and portfolio returns
   portfolio_returns_df <- data.frame(date = returns$date, portfolio_return = portfolio_returns)
