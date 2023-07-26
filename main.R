@@ -43,14 +43,6 @@ source("exporting_results.R")
 returns <- read_csv("data_directory/etfs_rtn.csv")[-1]
 
 
-# Number of cores
-cores <- detectCores()
-
-
-# Create a cluster
-cl <- makeCluster(cores/2)
-
-
 # Construct portfolio and benchmarks
 mixture_portfolio_1y <- RollingWindowEstimation(returns = returns,
                                                 We = 252,
@@ -83,10 +75,6 @@ gaussian_portfolio_5y <- RollingWindowEstimation(returns = returns,
                                                  K = 1000,
                                                  Mixture = FALSE)
 naive_portfolio <- NaiveDiversification(returns)
-
-
-# Stop the cluster
-stopCluster(cl)
 
 
 # Saving results
