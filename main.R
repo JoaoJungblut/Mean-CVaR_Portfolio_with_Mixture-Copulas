@@ -112,13 +112,20 @@ naive_portfolio_xts <- xts::xts(naive_portfolio[253:nrow(naive_portfolio), -1],
 
 
 # Compute performance
-mixture_portfolio_1y_performance <- ComputePerformance(mixture_portfolio_1y_xts)
-mixture_portfolio_2y_performance <- ComputePerformance(mixture_portfolio_2y_xts)
-mixture_portfolio_5y_performance <- ComputePerformance(mixture_portfolio_5y_xts)
-gaussian_portfolio_1y_performance <- ComputePerformance(gaussian_portfolio_1y_xts)
-gaussian_portfolio_2y_performance <- ComputePerformance(gaussian_portfolio_2y_xts)
-gaussian_portfolio_5y_performance <- ComputePerformance(gaussian_portfolio_5y_xts)
-naive_portfolio_performance <- ComputePerformance(naive_portfolio_xts)
+mixture_portfolio_1y_performance <- ComputePerformance(mixture_portfolio_1y_xts) %>% 
+  dplyr::rename("Mixture Portfolio 1 year" = Values)
+mixture_portfolio_2y_performance <- ComputePerformance(mixture_portfolio_2y_xts) %>% 
+  dplyr::rename("Mixture Portfolio 2 years" = Values)
+mixture_portfolio_5y_performance <- ComputePerformance(mixture_portfolio_5y_xts) %>% 
+  dplyr::rename("Mixture Portfolio 5 years" = Values)
+gaussian_portfolio_1y_performance <- ComputePerformance(gaussian_portfolio_1y_xts) %>% 
+  dplyr::rename("Gaussian Portfolio 1 year" = Values)
+gaussian_portfolio_2y_performance <- ComputePerformance(gaussian_portfolio_2y_xts) %>% 
+  dplyr::rename("Gaussian Portfolio 2 years" = Values)
+gaussian_portfolio_5y_performance <- ComputePerformance(gaussian_portfolio_5y_xts) %>% 
+  dplyr::rename("Gaussian Portfolio 5 years" = Values)
+naive_portfolio_performance <- ComputePerformance(naive_portfolio_xts) %>% 
+  dplyr::rename("Equal Weight Portfolio" = Values)
 
 
 # Merge the three performance results into one list
