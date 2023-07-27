@@ -106,8 +106,9 @@ gaussian_portfolio_2y_xts <- xts::xts(gaussian_portfolio_2y[,-1],
                                       order.by = gaussian_portfolio_2y$date)
 gaussian_portfolio_5y_xts <- xts::xts(gaussian_portfolio_5y[,-1], 
                                       order.by = gaussian_portfolio_5y$date)
+naive_date <- naive_portfolio[253:ncol(returns),1]
 naive_portfolio_xts <- xts::xts(naive_portfolio[253:ncol(returns), -1],
-                                order.by = naive_portfolio[253:ncol(returns),1])
+                                order.by = naive_date)
 
 
 # Compute performance
@@ -131,15 +132,15 @@ all_performance <- list(
   naive = naive_portfolio_performance
 )
 
-merged_portfolio_1y <- merge.xts(mixture_portfolio_1y_xts,
-                                 gaussian_portfolio_1y_xts,
-                                 naive_portfolio_xts)
-merged_portfolio_2y <- merge.xts(mixture_portfolio_2y_xts,
-                                 gaussian_portfolio_2y_xts,
-                                 naive_portfolio_xts, join = "inner")
-merged_portfolio_5y <- merge.xts(mixture_portfolio_5y_xts,
-                                 gaussian_portfolio_5y_xts,
-                                 naive_portfolio_xts, join = "inner")
+merged_portfolio_1y <- mixture_portfolio_1y_xts %>%
+  inner_join(gaussian_portfolio_1y_xts, by = "index") %>%
+  inner_join(naive_portfolio_xts, by = "index")
+merged_portfolio_2y <- mixture_portfolio_2y_xts %>%
+  inner_join(gaussian_portfolio_2y_xts, by = "index") %>%
+  inner_join(naive_portfolio_xts, by = "index")
+merged_portfolio_5y <- mixture_portfolio_5y_xts %>%
+  inner_join(gaussian_portfolio_5y_xts, by = "index") %>%
+  inner_join(naive_portfolio_xts, by = "index")
 
 
 # Saving results
