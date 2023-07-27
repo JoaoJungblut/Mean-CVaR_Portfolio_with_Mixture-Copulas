@@ -33,37 +33,17 @@ SaveSummaryStats <- function(df, filename = "tables/summary_stats_table.txt") {
 
 
 
-SavePerformanceTable <- function(merged_performance, filename = "tables/performance_table.txt") {
-  
+SavePerformanceTable <- function(all_performance, filename = "tables/performance_table.txt") {
   # SavePerformanceTable: Function to save a LaTeX table of portfolio performance metrics.
   # Inputs:
-  #   merged_performance: A list containing performance metrics for different portfolio strategies.
+  #   all_performance: A list containing performance metrics for different portfolio strategies.
   #   filename: File path to save the LaTeX table (default = "tables/performance_table.txt").
   
-  # Performance metrics names
-  metric_names <- c("Annualized Return",
-                    "Annualized Std. Dev.",
-                    "Sharpe Ratio (Annualized)",
-                    "Sortino Ratio",
-                    "Omega Sharpe Ratio",
-                    "VaR (97.5%)",
-                    "CVaR (97.5%)",
-                    "Semi-Deviation",
-                    "Worst Drawdown")
-  
-  # Create a data frame to store the performance metrics and corresponding values
-  performance_df <- data.frame(
-    Metric = metric_names,
-    Mixture = merged_performance$mixture,
-    Gaussian = merged_performance$gaussian,
-    Naive = merged_performance$naive
-  )
-  
   # Convert the data frame to a LaTeX table using xtable
-  performance_table <- xtable(performance_df,
+  performance_table <- xtable(all_performance,
                               caption = "Portfolio Performance Metrics",
-                              align = c("l", "c", "c", "c"),
-                              digits = c(2, 4, 4, 4))
+                              align = c("l", "c", "c", "c", "c", "c", "c", "c", "c"),
+                              digits = c(2, 4, 4, 4, 4, 4, 4, 4, 4))
   
   # Save the LaTeX table as .txt file
   write(as.character(performance_table), file = filename)
@@ -122,13 +102,12 @@ SavePerformanceGraph <- function(data, filename = "figures/performance_graph.png
   #   filename: File path to save the performance graph as an image (default = "figures/performance_graph.png").
   
   # Create the PerformanceSummary chart
-  chart <- charts.PerformanceSummary(data)
+  chart <- PerformanceAnalytics::charts.PerformanceSummary(data, 
+                                                           main = "Performance chart")
   
-  # Convert the chart to a ggplot object
-  gg_chart <- as.ggplot(chart)
-  
-  # Save the ggplot to a file
-  ggsave(filename, gg_chart)
+  # Save the chart to a file
+  dev.copy(png, filename)
+  dev.off()
   
   cat("Performance graph saved to:", filename, "\n")
 }
