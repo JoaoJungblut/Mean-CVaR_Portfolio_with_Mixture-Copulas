@@ -106,9 +106,8 @@ gaussian_portfolio_2y_xts <- xts::xts(gaussian_portfolio_2y[,-1],
                                       order.by = gaussian_portfolio_2y$date)
 gaussian_portfolio_5y_xts <- xts::xts(gaussian_portfolio_5y[,-1], 
                                       order.by = gaussian_portfolio_5y$date)
-naive_date <- naive_portfolio[253:ncol(returns),1]
-naive_portfolio_xts <- xts::xts(naive_portfolio[253:ncol(returns), -1],
-                                order.by = naive_date)
+naive_portfolio_xts <- xts::xts(naive_portfolio[253:nrow(naive_portfolio), -1],
+                                order.by = naive_portfolio[253:nrow(naive_portfolio),]$date)
 
 
 # Compute performance
