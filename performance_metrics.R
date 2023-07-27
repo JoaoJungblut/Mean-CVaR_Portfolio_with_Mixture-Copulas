@@ -35,15 +35,24 @@ ComputePerformance <- function(returns) {
   worst_drawdown <- PerformanceAnalytics::maxDrawdown(returns)
   
   # Create a list of performance ratios
-  performance_ratios <- list(ret_annualized,
-                             std_dev_annualized,
-                             Sharpe_annualized,
-                             Sortino,
-                             omega,
-                             var_975,
-                             cvar_975,
-                             semi_deviation,
-                             worst_drawdown)
+  performance_ratios <- data.frame("Metrics" = c("Annualized Return",
+                                                 "Annualized Std. Dev.",
+                                                 "Sharpe Ratio (Annualized)",
+                                                 "Sortino Ratio",
+                                                 "Omega Sharpe Ratio",
+                                                 "VaR (97.5%)",
+                                                 "CVaR (97.5%)",
+                                                 "Semi-Deviation",
+                                                 "Worst Drawdown"), 
+                                   "Values" = c(ret_annualized,
+                                                std_dev_annualized,
+                                                Sharpe_annualized,
+                                                Sortino,
+                                                omega,
+                                                var_975,
+                                                cvar_975,
+                                                semi_deviation,
+                                                worst_drawdown))
   
   return(performance_ratios)
 }
