@@ -24,6 +24,7 @@ library(Rsolnp)        # Nonlinear optimization
 library(fPortfolio)    # Portfolio optimization
 library(PerformanceAnalytics) # Performance metrics
 library(xts) # Time series object
+library(timetk) # Time series object
 library(xtable) # Create LaTex tables
 library(ggplot2) # Produce graph 
 
@@ -121,38 +122,48 @@ naive_portfolio_performance <- ComputePerformance(naive_portfolio_xts)
 
 
 # Merge the three performance results into one list
-all_performance <- list(
-  mixture_1y = mixture_portfolio_1y_performance,
-  mixture_2y = mixture_portfolio_2y_performance,
-  mixture_5y = mixture_portfolio_5y_performance,
-  gaussian_1y = gaussian_portfolio_1y_performance,
-  gaussian_2y = gaussian_portfolio_2y_performance,
-  gaussian_5y = gaussian_portfolio_5y_performance,
-  naive = naive_portfolio_performance
-)
+all_performance <- mixture_portfolio_1y_performance %>% 
+  dplyr::inner_join(mixture_portfolio_2y_performance, by = "Metrics") %>% 
+  dplyr::inner_join(mixture_portfolio_5y_performance, by = "Metrics") %>% 
+  dplyr::inner_join(gaussian_portfolio_1y_performance, by = "Metrics") %>% 
+  dplyr::inner_join(gaussian_portfolio_2y_performance, by = "Metrics") %>% 
+  dplyr::inner_join(gaussian_portfolio_5y_performance, by = "Metrics") %>% 
+  dplyr::inner_join(naive_portfolio_performance, by = "Metrics") 
 
-merged_portfolio_1y <- mixture_portfolio_1y_xts %>%
-  inner_join(gaussian_portfolio_1y_xts, by = "index") %>%
-  inner_join(naive_portfolio_xts, by = "index")
-merged_portfolio_2y <- mixture_portfolio_2y_xts %>%
-  inner_join(gaussian_portfolio_2y_xts, by = "index") %>%
-  inner_join(naive_portfolio_xts, by = "index")
-merged_portfolio_5y <- mixture_portfolio_5y_xts %>%
-  inner_join(gaussian_portfolio_5y_xts, by = "index") %>%
-  inner_join(naive_portfolio_xts, by = "index")
+merged_portfolio_1y <- mixture_portfolio_1y %>%
+  dplyr::inner_join(gaussian_portfolio_1y, by = "date") %>%
+  dplyr::inner_join(naive_portfolio, by = "date") %>% 
+  dplyr::rename("Mixture Portfolio 1 year" = portfolio_return.x,
+                "Gaussian Portfolio 1 year" = portfolio_return.y,
+                "Equal Weight Portfolio" = portfolio_return) %>% 
+  timetk::tk_xts()
+merged_portfolio_2y <- mixture_portfolio_2y %>%
+  dplyr::inner_join(gaussian_portfolio_2y, by = "date") %>%
+  dplyr::inner_join(naive_portfolio, by = "date") %>% 
+  dplyr::rename("Mixture Portfolio 2 years" = portfolio_return.x,
+                "Gaussian Portfolio 2 years" = portfolio_return.y,
+                "Equal Weight Portfolio" = portfolio_return) %>% 
+  timetk::tk_xts()
+merged_portfolio_5y <- mixture_portfolio_5y %>%
+  dplyr::inner_join(gaussian_portfolio_5y, by = "date") %>%
+  dplyr::inner_join(naive_portfolio, by = "date") %>% 
+  dplyr::rename("Mixture Portfolio 5 years" = portfolio_return.x,
+                "Gaussian Portfolio 5 years" = portfolio_return.y,
+                "Equal Weight Portfolio" = portfolio_return) %>% 
+  timetk::tk_xts()
 
 
 # Saving results
 SaveSummaryStats(df = returns, 
                  filename = "tables/etf_summary_stats_table.txt")
-SavePerformanceTable(returns = all_performance, 
+SavePerformanceTable(all_performance = all_performance, 
                      filename = "tables/etf_performance_table.txt")
 SaveGraphReturns(df = returns, 
                  filename = "figures/etf_returns_figure.png")
-SavePerformanceGraphs(data = merged_portfolio_1y, 
+SavePerformanceGraph(data = merged_portfolio_1y, 
                       filename = "figures/etf_performance_1y_graph.png")
-SavePerformanceGraphs(data = merged_portfolio_2y, 
+SavePerformanceGraph(data = merged_portfolio_2y, 
                       filename = "figures/etf_performance_2y_graph.png")
-SavePerformanceGraphs(data = merged_portfolio_5y, 
+SavePerformanceGraph(data = merged_portfolio_5y, 
                       filename = "figures/etf_performance_5y_graph.png")
 
