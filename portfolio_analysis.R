@@ -80,12 +80,17 @@ RollingWindowEstimation <- function(returns,
                                sigma = fit_garch$sigma,
                                zsim = zsim,
                                garch_coef = fit_garch$garch_coef)
-      
+      ret_pred <- as.data.frame(ret_pred)
+
       # Perform CVaR optimization to determine the optimal portfolio weights
       names_vector <- names(returns[,-1])
       weights <- matrix(nrow = 1, ncol = ncol(returns[,-1])) 
       colnames(weights) <- names_vector
-      weights[1, names_vector[assets_with_valid_returns]] <- CVaROptimization(returns = ret_pred)
+      weights[1, names_vector[assets_with_valid_returns]] <- CVaROptimization(returns = ret_pred,
+                                                                              Alpha = 0.975, 
+                                                                              TargetReturn = 0,
+                                                                              Turnover = 0.0003,
+                                                                              NumAssets = 8)
       weights[1, names_vector[!assets_with_valid_returns]] <- 0
     }
     
