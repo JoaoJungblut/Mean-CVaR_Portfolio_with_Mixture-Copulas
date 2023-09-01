@@ -1,4 +1,4 @@
-# Exploring Mixture of Copulas for Optimal Portfolio Allocation: Worst-Case CVaR  
+# Exploring Mixture of Copulas for Optimal Portfolio Allocation: Worst-Case CVaR  under cardinality constraints
 
 This repository contains the code and documentation for my final course project at Universidade Federal do Rio Grande do Sul (UFRGS) in economic science. The project focuses on the usage of mixture copulas for portfolio optimization using the worst-case Conditional Value at Risk (CVaR). The analysis is conducted on a dataset of ETF (Exchange-Traded Fund) returns.
 
