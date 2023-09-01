@@ -26,7 +26,11 @@ library(PerformanceAnalytics) # Performance metrics
 library(xts) # Time series object
 library(timetk) # Time series object
 library(xtable) # Create LaTex tables
-library(ggplot2) # Produce graph 
+library(ggplot2) # Produce graph
+library("ROI")
+library("ROI.plugin.glpk")
+library("ROI.plugin.quadprog")
+library("ROI.plugin.alabama")
 
 
 # Importing modules
