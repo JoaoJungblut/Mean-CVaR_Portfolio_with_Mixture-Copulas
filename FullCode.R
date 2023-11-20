@@ -79,17 +79,25 @@ Symbols
 
 
 # Filtering stocks on Ibovespa
-Ret_List <- map(Update, .f = function(x){ 
+Ret_inSample <- map(Update, .f = function(x){ 
+  # Defining stocks per size in Small and Big
+  Ret %>% 
+    select(date,  Symbols[[paste(x)]]) %>% # filter Ibov stocks
+    dplyr::filter(date > as.Date(x) - 365,
+                  date <= as.Date(x)) 
+})
+names(Ret_inSample) <- Update
+Ret_inSample
+
+Ret_outofSample <- map(Update, .f = function(x){ 
   # Defining stocks per size in Small and Big
   Ret %>% 
     select(date,  Symbols[[paste(x)]]) %>% # filter Ibov stocks
     dplyr::filter(date > as.Date(x),
-           date <= as.Date(x) + 365) 
+                  date <= as.Date(x) + 365) 
 })
-names(Ret_List) <- Update
-Ret_List
-
-
+names(Ret_outofSample) <- Update + 365
+Ret_outofSample
 
 
 
