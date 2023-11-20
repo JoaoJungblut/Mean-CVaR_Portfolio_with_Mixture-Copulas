@@ -36,6 +36,7 @@ library("ROI.plugin.alabama") # Optimization
 
 
 # Fetch data
+# OBSERVATION: CSIP6 was removed from data due to impossibility of found data
 Ret <- read_excel("data_directory/StockPrice.xlsx")[-1,] %>% 
   mutate(date = as.Date(data), # convert to date format
          across(VALE3:WHMT3, as.numeric)) %>%  # convert to numeric format
@@ -82,29 +83,11 @@ Ret_List <- map(Update, .f = function(x){
   # Defining stocks per size in Small and Big
   Ret %>% 
     select(date,  Symbols[[paste(x)]]) %>% # filter Ibov stocks
-    dplyr::filter(date > x,
-           date <= x + 365)
-    filter(Ticker %in% Symbols[[paste(x)]], # filter Ibov stocks
-           date <= x + 365) %>% 
-  Size <- MarketValue %>% 
-    filter(Ticker %in% Symbols[[paste(x)]], # filter Ibov stocks 
-           m == Month,
-           date <= x) %>% 
-    select(-m) %>% 
-    group_by(Ticker) %>% # grouping by ticker to select last value
-    summarise(date = last(date),
-              MarketValue = last(MarketValue)) %>% 
-    ungroup() %>% 
-    arrange(desc(MarketValue)) %>% # sorting stocks by size 
-    filter(MarketValue > 0) %>% # exclude negative Market Value
-    mutate(Size = case_when(MarketValue >= median(MarketValue) ~ "Big",
-                            T ~ "Small")) %>% 
-    select(date, Ticker, Size) %>% 
-    arrange(Ticker)
-  
+    dplyr::filter(date > as.Date(x),
+           date <= as.Date(x) + 365) 
 })
-names(Classification) <- Update
-Classification
+names(Ret_List) <- Update
+Ret_List
 
 
 
