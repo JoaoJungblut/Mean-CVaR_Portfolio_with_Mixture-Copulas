@@ -241,35 +241,14 @@ par6 <- copula::fitCopula(copJ, unif_dist, "mpl", estimate.variance = FALSE)@est
 
 
 ## Generating copula variaties
-cC <- copula::rCopula(n = 10000,copula = copC)
-cG <- copula::rCopula(n = 10000,copula = copG)
-ct <- copula::rCopula(n = 10000,copula = copt)
-cn <- copula::rCopula(n = 10000,copula = copn)
-cF <- copula::rCopula(n = 10000,copula = copF)
-cJ <- copula::rCopula(n = 10000,copula = copJ)
+cC <- copula::rCopula(n = 10000, copula = copC)
+cG <- copula::rCopula(n = 10000, copula = copG)
+ct <- copula::rCopula(n = 10000, copula = copt)
+cn <- copula::rCopula(n = 10000, copula = copn)
+cF <- copula::rCopula(n = 10000, copula = copF)
+cJ <- copula::rCopula(n = 10000, copula = copJ)
 
-
-# Create data frame
-data <- data.frame(
-  C = cC,
-  G = cG,
-  t = ct,
-  n = cn,
-  F = cF,
-  J = cJ
-)
-
-# Convert data to long format for ggplot
-data_long <- tidyr::gather(data, key = "Copula", value = "Values")
-
-# Create facet_wrap plot
-ggplot(data_long, aes(x = Values)) +
-  geom_density() +
-  facet_wrap(~Copula, scales = "free") +
-  labs(title = "Copula Variations", x = "Values", y = "Density")
-
-
-
+plot(ct)
 
 
 
