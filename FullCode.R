@@ -209,13 +209,21 @@ complete_columns <- apply(unif_dist, 2, function(x) all(!is.na(x)))
 
 # Subset the matrix to keep only columns with complete cases
 unif_dist <- unif_dist[, complete_columns] # drop na columns
-unif_dist <- unif_dist[, 1:33]
 
 # Initialize copula objects
-copt <- copula::tCopula(param = 0.5, dim = ncol(unif_dist))  # t-Copula with parameter 0.5
-copC <- copula::claytonCopula(2, dim = ncol(unif_dist))      # Clayton copula with delta = 2
-copG <- copula::gumbelCopula(2, dim = ncol(unif_dist))       # Gumbel copula with theta = 2
-
+copt <- copula::tCopula(param = 0.5,
+                        dim = ncol(unif_dist),
+                        df = ncol(unif_dist))   # t-Copula with parameter 0.5
+copC <- copula::claytonCopula(param = 2, 
+                              dim = ncol(unif_dist)) # Clayton copula with delta = 2
+copG <- copula::gumbelCopula(param = 2, 
+                             dim = ncol(unif_dist)) # Gumbel copula with theta = 2
+copF <- copula::frankCopula(param = 1, 
+                            dim = ncol(unif_dist)) # Frank copula with parameter 1
+copJ <- copula::joeCopula(param = 2,
+                          dim = ncol(unif_dist)) # Joe copula
+copn <- copula::normalCopula(param = 0.5, 
+                             dim = ncol(unif_dist)) # Gaussian copula with parameter 0.5
 
 # Define lower and upper bounds for the copula parameters and weights
 lower <- c(0.1, 1, -0.9, (2 + .Machine$double.eps), 0, 0, 0)
@@ -223,9 +231,45 @@ upper <- c(copC@param.upbnd, copG@param.upbnd, 1, 100, 1, 1, 1)
 
 
 ## Creating elliptical copula objects and estimating "initial guesses" for each copula parameter.
-# Then, we maximize loglikelihood of the linear combination of the three copulas
+# Then, we maximize log-likelihood of the linear combination of the three copulas
 par1 <- copula::fitCopula(copC, unif_dist, "itau", estimate.variance = TRUE)@estimate # Inversion of Kendall's tau for Clayton
 par2 <- copula::fitCopula(copG, unif_dist, "itau", estimate.variance = TRUE)@estimate # Inversion of Kendall's tau for Gumbel
 par3 <- copula::fitCopula(copt, unif_dist, "mpl", estimate.variance = FALSE)@estimate # MPL to estimate Degrees of Freedom (DF)
+par4 <- copula::fitCopula(copn, unif_dist, "mpl", estimate.variance = FALSE)@estimate
+par5 <- copula::fitCopula(copF, unif_dist, "mpl", estimate.variance = FALSE)@estimate
+par6 <- copula::fitCopula(copJ, unif_dist, "mpl", estimate.variance = FALSE)@estimate
+
+
+## Generating copula variaties
+cC <- copula::rCopula(n = 10000,copula = copC)
+cG <- copula::rCopula(n = 10000,copula = copG)
+ct <- copula::rCopula(n = 10000,copula = copt)
+cn <- copula::rCopula(n = 10000,copula = copn)
+cF <- copula::rCopula(n = 10000,copula = copF)
+cJ <- copula::rCopula(n = 10000,copula = copJ)
+
+
+# Create data frame
+data <- data.frame(
+  C = cC,
+  G = cG,
+  t = ct,
+  n = cn,
+  F = cF,
+  J = cJ
+)
+
+# Convert data to long format for ggplot
+data_long <- tidyr::gather(data, key = "Copula", value = "Values")
+
+# Create facet_wrap plot
+ggplot(data_long, aes(x = Values)) +
+  geom_density() +
+  facet_wrap(~Copula, scales = "free") +
+  labs(title = "Copula Variations", x = "Values", y = "Density")
+
+
+
+
 
 
