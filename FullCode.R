@@ -258,15 +258,12 @@ params[["Frank"]] <- paramF
 params[["Joe"]] <- paramJ
 
 
-LLCG <- function(params, U, copC, copG, copt){ 
+LLCG <- function(params, U){ 
   
   # LLCG: Negative log-likelihood function for estimating copula weights and parameters.
   # Inputs:
   #   params: A numeric vector containing the initial values for copula parameters and weights.
   #   U: A matrix containing the uniform (0 to 1) marginals of the data for each copula.
-  #   copC: A copula object (Clayton copula) with initial parameters to be estimated.
-  #   copG: A copula object (Gumbel copula) with initial parameters to be estimated.
-  #   copt: A copula object (t copula) with initial parameters to be estimated.
   # Output:
   #   The negative log-likelihood value to be optimized for estimating copula parameters and weights.
   
@@ -339,6 +336,7 @@ eqfun <- function(params, U){
   #   The sum of the copula weights (pi1, pi2, pi3) to be constrained.
   
   # Filter non-null values
+  params = list(params)
   combination <- Filter(negate(is.null), params)
   pi <- 1 / length(combination)
   
@@ -347,39 +345,42 @@ eqfun <- function(params, U){
 }
 
 combination <- Filter(negate(is.null), params)
-combination <- c(combination, rep(pi, length(combination)))
 
-for (copula_name in names(combination)) {
-  if (copula_name == "Clayton") {
-    lower$copula_name <- 0.1
-    upper$copula_name <- copC@param.upbnd
-  } else if (copula_name == "Gumbel") {
-    lower$copula_name <- 1
-    upper$copula_name <- copG@param.upbnd
-  } else if (copula_name == "t") {
-    lower$copula_name <- c(2 + .Machine$double.eps, 0, 0)
-    upper$copula_name <- c(1, 100, 1)
-  } else if (copula_name == "Gaussian") {
-    lower$copula_name <- c(LOWER_BOUNDS_GAUSSIAN)  # Substitua LOWER_BOUNDS_GAUSSIAN pelos limites inferiores específicos da cópula Gaussian
-    upper$copula_name <- c(UPPER_BOUNDS_GAUSSIAN)  # Substitua UPPER_BOUNDS_GAUSSIAN pelos limites superiores específicos da cópula Gaussian
-  } else if (copula_name == "Frank") {
-    lower$copula_name <- c(LOWER_BOUNDS_FRANK)  # Substitua LOWER_BOUNDS_FRANK pelos limites inferiores específicos da cópula Frank
-    upper$copula_name <- c(UPPER_BOUNDS_FRANK)  # Substitua UPPER_BOUNDS_FRANK pelos limites superiores específicos da cópula Frank
-  } else if (copula_name == "Joe") {
-    lower$copula_name <- c(LOWER_BOUNDS_JOE)  # Substitua LOWER_BOUNDS_JOE pelos limites inferiores específicos da cópula Joe
-    upper$copula_name <- c(UPPER_BOUNDS_JOE)  # Substitua UPPER_BOUNDS_JOE pelos limites superiores específicos da cópula Joe
-  } else {
-    lower$copula_name <- 0
-    upper$copula_name <- 1
-  }
+# Initialize lower e upper bounds
+lower <- list()
+upper <- list()
+
+if ("Clayton" %in% names(combination)) {
+  lower$"Clayton" <- 0.1
+  upper$"Clayton" <- copC@param.upbnd
+} 
+if ("Gumbel" %in% names(combination)) {
+  lower$"Gumbel" <- 1
+  upper$"Gumbel" <- copG@param.upbnd
+}
+if ("t" %in% names(combination)) {
+  lower$"t" <- c(-0.9, (2 + .Machine$double.eps))
+  upper$"t" <- c(1, 100)
+} 
+if ("Gaussian" %in% names(combination)) {
+  lower$"Gaussian" <- copN@param.lowbnd
+  upper$"Gaussian" <- copN@param.upbnd  
+} 
+if ("Frank" %in% names(combination)) {
+  lower$"Frank" <- copF@param.lowbnd
+  upper$"Frank" <- copF@param.upbnd  
+} 
+if ("Joe" %in% names(combination)) {
+  lower$"Joe" <- copJ@param.lowbnd
+  upper$"Joe" <- copJ@param.upbnd  
 }
 
 
 ## Non-linear constrained optimization (RSOLNP)
-opt <- Rsolnp::solnp(pars = params,
+opt <- Rsolnp::solnp(pars = unlist(combination),
                      fun = LLCG,
-                     LB = lower,
-                     UB = upper,
+                     LB = unlist(lower),
+                     UB = unlist(upper),
                      U = unif_dist,
                      eqfun = eqfun,
                      eqB = c(1))
