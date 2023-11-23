@@ -211,7 +211,7 @@ complete_columns <- apply(unif_dist, 2, function(x) all(!is.na(x)))
 unif_dist <- unif_dist[, complete_columns] # drop na columns
 
 # Initialize copula objects
-copt <- copula::tCopula(param = 0.5,
+copT <- copula::tCopula(param = 0.5,
                         dim = ncol(unif_dist),
                         df = ncol(unif_dist))   # t-Copula with parameter 0.5
 copC <- copula::claytonCopula(param = 2, 
@@ -222,7 +222,7 @@ copF <- copula::frankCopula(param = 1,
                             dim = ncol(unif_dist)) # Frank copula with parameter 1
 copJ <- copula::joeCopula(param = 2,
                           dim = ncol(unif_dist)) # Joe copula
-copn <- copula::normalCopula(param = 0.5, 
+copN <- copula::normalCopula(param = 0.5, 
                              dim = ncol(unif_dist)) # Gaussian copula with parameter 0.5
 
 # Define lower and upper bounds for the copula parameters and weights
@@ -232,12 +232,157 @@ upper <- c(copC@param.upbnd, copG@param.upbnd, 1, 100, 1, 1, 1)
 
 ## Creating elliptical copula objects and estimating "initial guesses" for each copula parameter.
 # Then, we maximize log-likelihood of the linear combination of the three copulas
-par1 <- copula::fitCopula(copC, unif_dist, "itau", estimate.variance = TRUE)@estimate # Inversion of Kendall's tau for Clayton
-par2 <- copula::fitCopula(copG, unif_dist, "itau", estimate.variance = TRUE)@estimate # Inversion of Kendall's tau for Gumbel
-par3 <- copula::fitCopula(copt, unif_dist, "mpl", estimate.variance = FALSE)@estimate # MPL to estimate Degrees of Freedom (DF)
-par4 <- copula::fitCopula(copn, unif_dist, "mpl", estimate.variance = FALSE)@estimate
-par5 <- copula::fitCopula(copF, unif_dist, "mpl", estimate.variance = FALSE)@estimate
-par6 <- copula::fitCopula(copJ, unif_dist, "mpl", estimate.variance = FALSE)@estimate
+paramC <- copula::fitCopula(copC, unif_dist, "itau", estimate.variance = TRUE)@estimate # Inversion of Kendall's tau for Clayton
+paramG <- copula::fitCopula(copG, unif_dist, "itau", estimate.variance = TRUE)@estimate # Inversion of Kendall's tau for Gumbel
+paramT <- copula::fitCopula(copt, unif_dist, "mpl", estimate.variance = FALSE)@estimate # MPL to estimate Degrees of Freedom (DF)
+paramN <- copula::fitCopula(copn, unif_dist, "mpl", estimate.variance = FALSE)@estimate
+paramF <- copula::fitCopula(copF, unif_dist, "mpl", estimate.variance = FALSE)@estimate
+paramJ <- copula::fitCopula(copJ, unif_dist, "mpl", estimate.variance = FALSE)@estimate
+
+
+# Create an empty list with the desired names
+params <- list("Clayton" = NULL,
+               "Gumbel" = NULL,
+               "t" = NULL,
+               "Gaussian" = NULL,
+               "Frank" = NULL,
+               "Joe" = NULL)
+
+
+# Add non-null parameters
+params[["Clayton"]] <- paramC
+params[["Gumbel"]] <- paramG
+params[["t"]] <- paramT
+params[["Gaussian"]] <- paramN
+params[["Frank"]] <- paramF
+params[["Joe"]] <- paramJ
+
+
+LLCG <- function(params, U, copC, copG, copt){ 
+  
+  # LLCG: Negative log-likelihood function for estimating copula weights and parameters.
+  # Inputs:
+  #   params: A numeric vector containing the initial values for copula parameters and weights.
+  #   U: A matrix containing the uniform (0 to 1) marginals of the data for each copula.
+  #   copC: A copula object (Clayton copula) with initial parameters to be estimated.
+  #   copG: A copula object (Gumbel copula) with initial parameters to be estimated.
+  #   copt: A copula object (t copula) with initial parameters to be estimated.
+  # Output:
+  #   The negative log-likelihood value to be optimized for estimating copula parameters and weights.
+  
+    
+  # Filter non-null values
+  combination <- Filter(negate(is.null), params)
+  
+  if ("Clayton" %in% names(combination)) {
+    slot(copC, "parameters") <- combination$Clayton
+  } 
+  if ("Gumbel" %in% names(combination)) {
+    slot(copG, "parameters") <- combination$Gumbel
+  } 
+  if ("t" %in% names(combination)) {
+    slot(copT, "parameters") <- combination$t
+  } 
+  if ("Gaussian" %in% names(combination)) {
+    slot(copN, "parameters") <- combination$Gaussian
+  } 
+  if ("Frank" %in% names(combination)) {
+    slot(copF, "parameters") <- combination$Frank
+  } 
+  if ("Joe" %in% names(combination)) {
+    slot(copJ, "parameters") <- combination$Joe
+  } 
+  
+  
+  # Set copula weights
+  pi <- 1/length(combination)
+  
+  
+  # Calculate the log-likelihood function to be optimized
+  dCop <- matrix(nrow = nrow(U), ncol = length(combination))
+  colnames(dCop) <- names(combination)
+  
+  for (i in seq_along(combination)) {
+    if ("Clayton" %in% names(combination)) {
+      dCop[, i] <- pi * copula::dCopula(U, copC)
+    } else if ("Gumbel" %in% names(combination)) {
+      dCop[, i] <- pi * copula::dCopula(U, copG)
+    } else if ("t" %in% names(combination)) {
+      dCop[, i] <- pi * copula::dCopula(U, copT)
+    } else if ("Gaussian" %in% names(combination)) {
+      dCop[, i] <- pi * copula::dCopula(U, copN)
+    } else if ("Frank" %in% names(combination)) {
+      dCop[, i] <- pi * copula::dCopula(U, copF)
+    } else if ("Joe" %in% names(combination)) {
+      dCop[, i] <- pi * copula::dCopula(U, copJ)
+    }
+  }
+  opt <- log(rowSums(dCop))
+  
+  # Handle infinite values in the log-likelihood
+  if(any(is.infinite(opt))){
+    opt[which(is.infinite(opt))] <- 0
+  }
+  
+  # Return the negative sum of the log-likelihood
+  -sum(opt)
+}
+
+
+eqfun <- function(params, U){ 
+  
+  # eqfun: Constrain function to ensure sum of weights = 1.
+  # Inputs:
+  #   params: A numeric vector containing the values of copula weights to be constrained.
+  #   U: A matrix containing the uniform (0 to 1) marginals of the data for each copula.
+  # Output:
+  #   The sum of the copula weights (pi1, pi2, pi3) to be constrained.
+  
+  # Filter non-null values
+  combination <- Filter(negate(is.null), params)
+  pi <- 1 / length(combination)
+  
+  z <- length(combination) * pi
+  return(z)
+}
+
+combination <- Filter(negate(is.null), params)
+combination <- c(combination, rep(pi, length(combination)))
+
+for (copula_name in names(combination)) {
+  if (copula_name == "Clayton") {
+    lower$copula_name <- 0.1
+    upper$copula_name <- copC@param.upbnd
+  } else if (copula_name == "Gumbel") {
+    lower$copula_name <- 1
+    upper$copula_name <- copG@param.upbnd
+  } else if (copula_name == "t") {
+    lower$copula_name <- c(2 + .Machine$double.eps, 0, 0)
+    upper$copula_name <- c(1, 100, 1)
+  } else if (copula_name == "Gaussian") {
+    lower$copula_name <- c(LOWER_BOUNDS_GAUSSIAN)  # Substitua LOWER_BOUNDS_GAUSSIAN pelos limites inferiores específicos da cópula Gaussian
+    upper$copula_name <- c(UPPER_BOUNDS_GAUSSIAN)  # Substitua UPPER_BOUNDS_GAUSSIAN pelos limites superiores específicos da cópula Gaussian
+  } else if (copula_name == "Frank") {
+    lower$copula_name <- c(LOWER_BOUNDS_FRANK)  # Substitua LOWER_BOUNDS_FRANK pelos limites inferiores específicos da cópula Frank
+    upper$copula_name <- c(UPPER_BOUNDS_FRANK)  # Substitua UPPER_BOUNDS_FRANK pelos limites superiores específicos da cópula Frank
+  } else if (copula_name == "Joe") {
+    lower$copula_name <- c(LOWER_BOUNDS_JOE)  # Substitua LOWER_BOUNDS_JOE pelos limites inferiores específicos da cópula Joe
+    upper$copula_name <- c(UPPER_BOUNDS_JOE)  # Substitua UPPER_BOUNDS_JOE pelos limites superiores específicos da cópula Joe
+  } else {
+    lower$copula_name <- 0
+    upper$copula_name <- 1
+  }
+}
+
+
+## Non-linear constrained optimization (RSOLNP)
+opt <- Rsolnp::solnp(pars = params,
+                     fun = LLCG,
+                     LB = lower,
+                     UB = upper,
+                     U = unif_dist,
+                     eqfun = eqfun,
+                     eqB = c(1))
 
 
 ## Generating copula variaties
