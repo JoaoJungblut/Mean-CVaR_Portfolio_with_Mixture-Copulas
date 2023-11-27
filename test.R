@@ -132,7 +132,7 @@ sigma <- sigma[,complete.cases(t(sigma))] # drop Na columns
 ## Generating Mixture-Copula
 copula_mixture <- OptMixtureCopulas(unif_dist, 
                                     K = 10000,
-                                    combination = c("Frank", "Gumbel"))
+                                    combination = c("Frank", "Joe"))
 
 
 # Compute simulated standardized residuals using the optimized mixture-copula and GARCH coefficients
@@ -155,8 +155,7 @@ names(weights) <- colnames(returns)
 weights <- CVaROptimization(returns = ret_pred,
                             Alpha = 0.05, 
                             TargetReturn = 0,
-                            #Turnover = 0.0003,
-                            NumAssets = 8)
+                            NumAssets = 16)
 
 
 # Calculate portfolio returns based on the optimal weights 
