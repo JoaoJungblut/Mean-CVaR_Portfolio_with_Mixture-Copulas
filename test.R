@@ -141,12 +141,13 @@ ret_pred <- PredictGarch(returns = returns,
                          zsim = zsim,
                          garch_coef = garch_coef)
 ret_pred <- as.data.frame(ret_pred)
+colnames(ret_pred) <- colnames(returns)
 
 
 # Perform CVaR optimization to determine the optimal portfolio weights
 weights <- matrix(nrow = 1, ncol = ncol(returns[,-1])) 
-colnames(weights) <- names(returns)
-weights[1, names(returns)] <- CVaROptimization(returns = ret_pred,
+colnames(weights) <- colnames(returns)
+weights[1, colnames(returns)] <- CVaROptimization(returns = ret_pred,
                                                Alpha = 0.975, 
                                                TargetReturn = 0,
                                                #Turnover = 0.0003,
