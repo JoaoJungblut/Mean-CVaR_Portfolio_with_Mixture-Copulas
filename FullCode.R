@@ -234,28 +234,19 @@ upper <- c(copC@param.upbnd, copG@param.upbnd, 1, 100, 1, 1, 1)
 # Then, we maximize log-likelihood of the linear combination of the three copulas
 paramC <- copula::fitCopula(copC, unif_dist, "itau", estimate.variance = TRUE)@estimate # Inversion of Kendall's tau for Clayton
 paramG <- copula::fitCopula(copG, unif_dist, "itau", estimate.variance = TRUE)@estimate # Inversion of Kendall's tau for Gumbel
-paramT <- copula::fitCopula(copt, unif_dist, "mpl", estimate.variance = FALSE)@estimate # MPL to estimate Degrees of Freedom (DF)
-paramN <- copula::fitCopula(copn, unif_dist, "mpl", estimate.variance = FALSE)@estimate
+paramT <- copula::fitCopula(copT, unif_dist, "mpl", estimate.variance = FALSE)@estimate # MPL to estimate Degrees of Freedom (DF)
+paramN <- copula::fitCopula(copN, unif_dist, "mpl", estimate.variance = FALSE)@estimate
 paramF <- copula::fitCopula(copF, unif_dist, "mpl", estimate.variance = FALSE)@estimate
 paramJ <- copula::fitCopula(copJ, unif_dist, "mpl", estimate.variance = FALSE)@estimate
 
 
-# Create an empty list with the desired names
-params <- list("Clayton" = NULL,
-               "Gumbel" = NULL,
-               "t" = NULL,
-               "Gaussian" = NULL,
-               "Frank" = NULL,
-               "Joe" = NULL)
-
-
-# Add non-null parameters
-params[["Clayton"]] <- paramC
-params[["Gumbel"]] <- paramG
-params[["t"]] <- paramT
-params[["Gaussian"]] <- paramN
-params[["Frank"]] <- paramF
-params[["Joe"]] <- paramJ
+# Create params vector
+params <- c(Clayton = paramC, 
+            Gumbel = paramG,
+            t = paramT,
+            Gaussian = paramN,
+            Frank = paramF,
+            Joe = paramJ)
 
 
 LLCG <- function(params, U){ 
@@ -267,50 +258,48 @@ LLCG <- function(params, U){
   # Output:
   #   The negative log-likelihood value to be optimized for estimating copula parameters and weights.
   
-    
-  # Filter non-null values
-  combination <- Filter(negate(is.null), params)
   
-  if ("Clayton" %in% names(combination)) {
-    slot(copC, "parameters") <- combination$Clayton
+  
+  if ("Clayton" %in% names(params)) {
+    slot(copC, "parameters") <- params["Clayton"]
   } 
-  if ("Gumbel" %in% names(combination)) {
-    slot(copG, "parameters") <- combination$Gumbel
+  if ("Gumbel" %in% names(params)) {
+    slot(copG, "parameters") <- params["Gumbel"]
   } 
-  if ("t" %in% names(combination)) {
-    slot(copT, "parameters") <- combination$t
+  if ("t" %in% names(params)) {
+    slot(copT, "parameters") <- params["t"]
   } 
-  if ("Gaussian" %in% names(combination)) {
-    slot(copN, "parameters") <- combination$Gaussian
+  if ("Gaussian" %in% names(params)) {
+    slot(copN, "parameters") <- params["Gaussian"]
   } 
-  if ("Frank" %in% names(combination)) {
-    slot(copF, "parameters") <- combination$Frank
+  if ("Frank" %in% names(params)) {
+    slot(copF, "parameters") <- params["Frank"]
   } 
-  if ("Joe" %in% names(combination)) {
-    slot(copJ, "parameters") <- combination$Joe
+  if ("Joe" %in% names(params)) {
+    slot(copJ, "parameters") <- params["Joe"]
   } 
   
   
   # Set copula weights
-  pi <- 1/length(combination)
+  pi <- 1/length(params)
   
   
   # Calculate the log-likelihood function to be optimized
-  dCop <- matrix(nrow = nrow(U), ncol = length(combination))
-  colnames(dCop) <- names(combination)
+  dCop <- matrix(nrow = nrow(U), ncol = length(params))
+  colnames(dCop) <- names(params)
   
-  for (i in seq_along(combination)) {
-    if ("Clayton" %in% names(combination)) {
+  for (i in seq_along(params)) {
+    if ("Clayton" %in% names(params)) {
       dCop[, i] <- pi * copula::dCopula(U, copC)
-    } else if ("Gumbel" %in% names(combination)) {
+    } else if ("Gumbel" %in% names(params)) {
       dCop[, i] <- pi * copula::dCopula(U, copG)
-    } else if ("t" %in% names(combination)) {
+    } else if ("t" %in% names(params)) {
       dCop[, i] <- pi * copula::dCopula(U, copT)
-    } else if ("Gaussian" %in% names(combination)) {
+    } else if ("Gaussian" %in% names(params)) {
       dCop[, i] <- pi * copula::dCopula(U, copN)
-    } else if ("Frank" %in% names(combination)) {
+    } else if ("Frank" %in% names(params)) {
       dCop[, i] <- pi * copula::dCopula(U, copF)
-    } else if ("Joe" %in% names(combination)) {
+    } else if ("Joe" %in% names(params)) {
       dCop[, i] <- pi * copula::dCopula(U, copJ)
     }
   }
@@ -326,64 +315,46 @@ LLCG <- function(params, U){
 }
 
 
-eqfun <- function(params, U){ 
-  
-  # eqfun: Constrain function to ensure sum of weights = 1.
-  # Inputs:
-  #   params: A numeric vector containing the values of copula weights to be constrained.
-  #   U: A matrix containing the uniform (0 to 1) marginals of the data for each copula.
-  # Output:
-  #   The sum of the copula weights (pi1, pi2, pi3) to be constrained.
-  
-  # Filter non-null values
-  params = list(params)
-  combination <- Filter(negate(is.null), params)
-  pi <- 1 / length(combination)
-  
-  z <- length(combination) * pi
-  return(z)
+# Initialize lower and upper bounds as named vectors
+lower <- numeric()
+upper <- numeric()
+
+if ("Clayton" %in% names(params)) {
+  lower["Clayton"] <- 0.1
+  upper["Clayton"] <- copC@param.upbnd
+} 
+if ("Gumbel" %in% names(params)) {
+  lower["Gumbel"] <- 1
+  upper["Gumbel"] <- copG@param.upbnd
 }
-
-combination <- Filter(negate(is.null), params)
-
-# Initialize lower e upper bounds
-lower <- list()
-upper <- list()
-
-if ("Clayton" %in% names(combination)) {
-  lower$"Clayton" <- 0.1
-  upper$"Clayton" <- copC@param.upbnd
+if ("t1" %in% names(params)) {
+  lower["t1"] <- -0.9 
+  upper["t1"] <- 1 
 } 
-if ("Gumbel" %in% names(combination)) {
-  lower$"Gumbel" <- 1
-  upper$"Gumbel" <- copG@param.upbnd
-}
-if ("t" %in% names(combination)) {
-  lower$"t" <- c(-0.9, (2 + .Machine$double.eps))
-  upper$"t" <- c(1, 100)
+if ("t2" %in% names(params)) {
+  lower["t2"] <- (2 + .Machine$double.eps)
+  upper["t2"] <- 100
 } 
-if ("Gaussian" %in% names(combination)) {
-  lower$"Gaussian" <- copN@param.lowbnd
-  upper$"Gaussian" <- copN@param.upbnd  
+if ("Gaussian" %in% names(params)) {
+  lower["Gaussian"] <- copN@param.lowbnd
+  upper["Gaussian"] <- copN@param.upbnd  
 } 
-if ("Frank" %in% names(combination)) {
-  lower$"Frank" <- copF@param.lowbnd
-  upper$"Frank" <- copF@param.upbnd  
+if ("Frank" %in% names(params)) {
+  lower["Frank"] <- copF@param.lowbnd
+  upper["Frank"] <- copF@param.upbnd  
 } 
-if ("Joe" %in% names(combination)) {
-  lower$"Joe" <- copJ@param.lowbnd
-  upper$"Joe" <- copJ@param.upbnd  
+if ("Joe" %in% names(params)) {
+  lower["Joe"] <- copJ@param.lowbnd
+  upper["Joe"] <- copJ@param.upbnd  
 }
 
 
 ## Non-linear constrained optimization (RSOLNP)
-opt <- Rsolnp::solnp(pars = unlist(combination),
+opt <- Rsolnp::solnp(pars = params,
                      fun = LLCG,
-                     LB = unlist(lower),
-                     UB = unlist(upper),
-                     U = unif_dist,
-                     eqfun = eqfun,
-                     eqB = c(1))
+                     LB = lower,
+                     UB = upper,
+                     U = unif_dist)
 
 
 ## Generating copula variaties
