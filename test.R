@@ -111,14 +111,44 @@ fit_garch <- FitGarch(returns)
 
 
 # Subset the matrix to keep only columns with complete cases
+garch_coef <- Filter(Negate(is.null), fit_garch$garch_coef) # Filtering NULL values 
 unif_dist <- fit_garch$unif_dist
 unif_dist <- unif_dist[, complete.cases(t(unif_dist))] # drop Na columns
+sigma <- fit_garch$sigma
+returns <- returns[, complete.cases(t(sigma))] # drop invalid stocks
+sigma <- sigma[,complete.cases(t(sigma))] # drop Na columns
 
 
 ## Generating Mixture Copula
-MixtureCopula <- OptMixtureCopulas(unif_dist, 
-                                   K = 10000,
-                                   combination = c("Clayton",
+copula_mixture <- OptMixtureCopulas(unif_dist, 
+                                    K = 10000,
+                                    combination = c("Clayton",
                                                    "Joe"))
 
 
+# Filtering NULL values on garch_coef 
+garch_coef <- Filter(Negate(is.null), fit_garch$garch_coef)
+
+
+# Compute simulated standardized residuals using the optimized copula mixture and GARCH coefficients
+zsim <- ComputeZSim(copula_mixture = copula_mixture, 
+                    garch_coef = garch_coef)
+
+
+# Predict future returns using the GARCH model, simulated residuals, and volatility estimates
+ret_pred <- PredictGarch(returns = returns, 
+                         sigma = sigma,
+                         zsim = zsim,
+                         garch_coef = garch_coef)
+ret_pred <- as.data.frame(ret_pred)
+
+
+# Perform CVaR optimization to determine the optimal portfolio weights
+weights <- matrix(nrow = 1, ncol = ncol(returns[,-1])) 
+colnames(weights) <- names(returns)
+weights[1, names(returns)] <- CVaROptimization(returns = ret_pred,
+                                               Alpha = 0.975, 
+                                               TargetReturn = 0,
+                                               #Turnover = 0.0003,
+                                               NumAssets = 8)
+weights[1, names_vector[!assets_with_valid_returns]] <- 0
