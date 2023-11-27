@@ -25,14 +25,27 @@ FitGarch <- function(returns){
     garch_fit <- try(ugarchfit(mod_garch, data = returns[,j], solver = "hybrid"),
                      silent=TRUE)
     
-    # Save residuals, sigma forecasts, GARCH coefficients, and uniform distribution values
-    residuals[, j] <- garch_fit@fit$residuals
-    sigma[, j] <- garch_fit@fit$sigma
-    garch_coef[[j]] <- garch_fit@fit$coef
-    unif_dist[, j] <- fGarch::psstd(q = residuals[, j] / sigma[, j],
-                                    nu = garch_coef[[j]][6],
-                                    xi = garch_coef[[j]][5])
+    # Check if garch_fit is an error or a successful fit
+    if (inherits(garch_fit, "try-error")) {
+      # Handle the error (e.g., print an error message)
+      cat("Error in fitting GARCH model for asset", colnames(returns)[j], "\n")
+    } else {
+      # Save residuals, sigma, GARCH coefficients, and uniform distribution values
+      residuals[, j] <- garch_fit@fit$residuals
+      sigma[, j] <- garch_fit@fit$sigma
+      garch_coef[[j]] <- garch_fit@fit$coef
+      unif_dist[, j] <- fGarch::psstd(q = residuals[, j] / sigma[, j],
+                                      nu = garch_coef[[j]][6],
+                                      xi = garch_coef[[j]][5])
+    }
   }
+  
+  # Name before store
+  colnames(unif_dist) <- colnames(returns)
+  colnames(garch_pred) <- colnames(returns)
+  colnames(sigma) <- colnames(returns)
+  colnames(residuals) <- colnames(returns)
+  names(garch_coef) <- colnames(returns)
   
   # Create a list to store the results
   result <- list(residuals = residuals,
