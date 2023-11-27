@@ -58,7 +58,7 @@ CVaROptimization <- function(returns,
     if (alpha < 0.5) alpha <- 1 - alpha
     
     Amat <- cbind(as.matrix(r_mat),  diag(S), 1)
-    var.names <- c(x.names, paste0("z_cvar_aux", seq_len(S)), "gamma")
+    var.names <- c(x.names, aux_names, "gamma")
     
     ## set bounds for gamma (-Inf, Inf) 
     bnds <- ROI::V_bound(li = c(N + S + 1), lb = c( -Inf),
@@ -129,13 +129,13 @@ CVaROptimization <- function(returns,
   obj <- c((tmp$objective)$L)
   objective(lp) <- c(obj, double(NCOL(constraints(lp)) - length(obj)))
   ## Error in (function (classes, fdef, mtable) : unable to find an inherited method for function 'constraints' for signature '"OP"'
-  types(lp) <- rep("C",  NCOL(constraints(lp) ))
+  types(lp) <- rep("C",  NCOL(constraints(lp)))
   ## Error in (function (classes, fdef, mtable) : unable to find an inherited method for function 'constraints' for signature '"OP"'
   types(lp)[grep("z_card_aux", constraints(lp)$names)] <- "B"
   ## Error in (function (classes, fdef, mtable) : unable to find an inherited method for function 'constraints' for signature '"OP"'
   (sol <- ROI_solve(lp, solver = "glpk"))
   ## Error in ROI_solve(lp, solver = "glpk"): objective is missing, with no default
-  weights <- round(solution(sol)[1:30], 4)[1:ncol(returns)]
+  weights <- round(solution(sol)[1:ncol(returns)], 4)[1:ncol(returns)]
   
   return(weights)
 }
