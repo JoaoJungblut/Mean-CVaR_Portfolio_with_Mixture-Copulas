@@ -35,6 +35,16 @@ library("ROI.plugin.quadprog") # Optimization
 library("ROI.plugin.alabama") # Optimization
 
 
+# Importing modules
+source("data_preprocessing.R")
+source("garch_estimate.R")
+source("copula_estimate.R")
+source("portfolio_optimization.R")
+source("portfolio_analysis.R")
+source("performance_metrics.R")
+source("exporting_results.R")
+
+
 # Fetch data
 # OBSERVATION: CSIP6 was removed from data due to impossibility of found data
 Ret <- read_excel("data_directory/StockPrice.xlsx")[-1,] %>% 
@@ -103,7 +113,7 @@ Ret_outofSample
 
 
 # Create returns matrix
-returns <- Ret_inSample[["1997-12-31"]]
+returns <- Ret_inSample$`2021-12-31`
 
 
 # Fit the GARCH model to the returns data
@@ -119,18 +129,13 @@ returns <- returns[, complete.cases(t(sigma))] # drop invalid stocks
 sigma <- sigma[,complete.cases(t(sigma))] # drop Na columns
 
 
-## Generating Mixture Copula
+## Generating Mixture-Copula
 copula_mixture <- OptMixtureCopulas(unif_dist, 
                                     K = 10000,
-                                    combination = c("Clayton",
-                                                   "Joe"))
+                                    combination = c("Frank", "Gumbel"))
 
 
-# Filtering NULL values on garch_coef 
-garch_coef <- Filter(Negate(is.null), fit_garch$garch_coef)
-
-
-# Compute simulated standardized residuals using the optimized copula mixture and GARCH coefficients
+# Compute simulated standardized residuals using the optimized mixture-copula and GARCH coefficients
 zsim <- ComputeZSim(copula_mixture = copula_mixture, 
                     garch_coef = garch_coef)
 
@@ -145,11 +150,41 @@ colnames(ret_pred) <- colnames(returns)
 
 
 # Perform CVaR optimization to determine the optimal portfolio weights
-weights <- matrix(nrow = 1, ncol = ncol(returns[,-1])) 
-colnames(weights) <- colnames(returns)
-weights[1, colnames(returns)] <- CVaROptimization(returns = ret_pred,
-                                               Alpha = 0.975, 
-                                               TargetReturn = 0,
-                                               #Turnover = 0.0003,
-                                               NumAssets = 8)
-weights[1, names_vector[!assets_with_valid_returns]] <- 0
+weights <- rep(0, ncol(returns))
+names(weights) <- colnames(returns)
+weights <- CVaROptimization(returns = ret_pred,
+                            Alpha = 0.05, 
+                            TargetReturn = 0,
+                            #Turnover = 0.0003,
+                            NumAssets = 8)
+
+
+# Calculate portfolio returns based on the optimal weights 
+ret_matrix_outofsample <- Ret_outofSample$`2022-12-31`[,colnames(returns)]
+portfolio_returns <- ret_matrix_outofsample  %*%  weights
+
+
+# Calculate cumulative returns
+cumulative_returns <- cumprod(1 + portfolio_returns) - 1
+
+
+# Plot the cumulative returns
+plot(cumulative_returns, type = "l", col = "green", lwd = 2,
+     main = "Portfolio Performance",
+     xlab = "Time Period", ylab = "Cumulative Returns")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
