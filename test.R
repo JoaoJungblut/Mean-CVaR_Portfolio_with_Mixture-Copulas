@@ -345,14 +345,27 @@ opt$pars
 
 
 ## Generating copula variaties
-cC <- copula::rCopula(n = 10000, copula = copC)
-cG <- copula::rCopula(n = 10000, copula = copG)
-ct <- copula::rCopula(n = 10000, copula = copt)
-cn <- copula::rCopula(n = 10000, copula = copn)
-cF <- copula::rCopula(n = 10000, copula = copF)
-cJ <- copula::rCopula(n = 10000, copula = copJ)
+cC <- opt$pars["piC"] * copula::rCopula(n = 10000, 
+                                        copula = claytonCopula(param = opt$pars["Clayton"],
+                                                               dim = ncol(unif_dist)))
+cG <- opt$pars["piG"] * copula::rCopula(n = 10000, 
+                                        copula = gumbelCopula(param = opt$pars["Gumbel"],
+                                                              dim = ncol(unif_dist)))
+cT <- opt$pars["piT"] * copula::rCopula(n = 10000, 
+                                        copula = tCopula(param = opt$pars["t1"],
+                                                         df = opt$pars["t2"],
+                                                        dim = ncol(unif_dist)))
+cN <- opt$pars["piN"] * copula::rCopula(n = 10000, 
+                                        copula = normalCopula(param = opt$pars["Gaussian"],
+                                                              dim = ncol(unif_dist)))
+cF <- opt$pars["piF"] * copula::rCopula(n = 10000, 
+                                        copula = frankCopula(param = opt$pars["Frank"],
+                                                             dim = ncol(unif_dist)))
+cJ <- opt$pars["piJ"] * copula::rCopula(n = 10000, 
+                                        copula = joeCopula(param = opt$pars["Joe"],
+                                                           dim = ncol(unif_dist)))
 
-plot(ct)
-
+finalcopula <- cC + cG + cT + cN + cF+ cJ
+plot(finalcopula[,3])
 
 
