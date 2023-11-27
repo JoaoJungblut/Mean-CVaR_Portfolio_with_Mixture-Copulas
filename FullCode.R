@@ -148,67 +148,13 @@ for(j in 1:ncol(returns)){
 }
 
 
-
-LLCG <- function(params, U, copC, copG, copt){ 
-  
-  # LLCG: Negative log-likelihood function for estimating copula weights and parameters.
-  # Inputs:
-  #   params: A numeric vector containing the initial values for copula parameters and weights.
-  #   U: A matrix containing the uniform (0 to 1) marginals of the data for each copula.
-  #   copC: A copula object (Clayton copula) with initial parameters to be estimated.
-  #   copG: A copula object (Gumbel copula) with initial parameters to be estimated.
-  #   copt: A copula object (t copula) with initial parameters to be estimated.
-  # Output:
-  #   The negative log-likelihood value to be optimized for estimating copula parameters and weights.
-  
-  # Set copula parameters
-  slot(copC, "parameters") <- params[1]    # Initial Clayton parameter
-  slot(copG, "parameters") <- params[2]    # Initial Gumbel parameter 
-  slot(copt, "parameters") <- params[3:4]  # Initial t parameters (correlation and degrees of freedom)
-  
-  # Set copula weights
-  pi1 <- params[5]  # Weight of Clayton copula
-  pi2 <- params[6]  # Weight of Gumbel copula
-  pi3 <- params[7]  # Weight of t copula
-  
-  # Calculate the log-likelihood function to be optimized
-  opt <- log(pi1 * copula::dCopula(U, copC) + 
-               pi2 * copula::dCopula(U, copG) + 
-               pi3 * copula::dCopula(U, copt))
-  
-  # Handle infinite values in the log-likelihood
-  if(any(is.infinite(opt))){
-    opt[which(is.infinite(opt))] <- 0
-  }
-  
-  # Return the negative sum of the log-likelihood
-  -sum(opt)
-}
-
-
-eqfun <- function(params, U, copC, copG, copt){ 
-  
-  # eqfun: Constrain function to ensure sum of weights = 1.
-  # Inputs:
-  #   params: A numeric vector containing the values of copula weights to be constrained.
-  #   U: A matrix containing the uniform (0 to 1) marginals of the data for each copula.
-  #   copC: A copula object (Clayton copula) used in the likelihood function.
-  #   copG: A copula object (Gumbel copula) used in the likelihood function.
-  #   copt: A copula object (t copula) used in the likelihood function.
-  # Output:
-  #   The sum of the copula weights (pi1, pi2, pi3) to be constrained.
-  
-  z <- params[5] + params[6] + params[7]
-  return(z)
-}
-
-
-
 # Identify columns with complete cases 
 complete_columns <- apply(unif_dist, 2, function(x) all(!is.na(x)))
 
+
 # Subset the matrix to keep only columns with complete cases
 unif_dist <- unif_dist[, complete_columns] # drop na columns
+
 
 # Initialize copula objects
 copT <- copula::tCopula(param = 0.5,
@@ -224,6 +170,7 @@ copJ <- copula::joeCopula(param = 2,
                           dim = ncol(unif_dist)) # Joe copula
 copN <- copula::normalCopula(param = 0.5, 
                              dim = ncol(unif_dist)) # Gaussian copula with parameter 0.5
+
 
 # Define lower and upper bounds for the copula parameters and weights
 lower <- c(0.1, 1, -0.9, (2 + .Machine$double.eps), 0, 0, 0)
