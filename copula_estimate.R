@@ -237,7 +237,7 @@ OptMixtureCopulas <- function(unif_dist, K = 10000, combination) {
   } 
   
   if ("t" %in% combination) {
-    ccT <- opt$pars["piT"] * copula::rCopula(n = 10000, 
+    cT <- opt$pars["piT"] * copula::rCopula(n = 10000, 
                                              copula = tCopula(param = opt$pars["t1"],
                                                               df = opt$pars["t2"],
                                                               dim = ncol(unif_dist)))
