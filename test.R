@@ -187,3 +187,4 @@ plot(cumulative_returns, type = "l", col = "green", lwd = 2,
 
 
 
+
