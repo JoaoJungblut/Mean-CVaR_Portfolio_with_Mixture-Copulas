@@ -58,7 +58,7 @@ CVaROptimization <- function(returns,
     if (alpha < 0.5) alpha <- 1 - alpha
     
     Amat <- cbind(as.matrix(r_mat),  diag(S), 1)
-    var.names <- c(x.names, aux_names, "gamma")
+    var.names <- c(x.names, paste0("z_cvar_aux", seq_len(S)), "gamma")
     
     ## set bounds for gamma (-Inf, Inf) 
     bnds <- ROI::V_bound(li = c(N + S + 1), lb = c( -Inf),
