@@ -113,7 +113,8 @@ Ret_outofSample
 
 
 # Define a function to perform computations for each  window
-Pipeline <- function(inSample, outofSample, Update, copulas){
+Pipeline <- function(inSample, outofSample, Update, copulas,
+                     Alpha = 0.05, TargetReturn = 0, NumAssets = 8){
   
   # Set seed
   set.seed(2023)
@@ -166,9 +167,9 @@ Pipeline <- function(inSample, outofSample, Update, copulas){
     weights <- rep(0, ncol(returns))
     names(weights) <- colnames(returns)
     weights <- CVaROptimization(returns = ret_pred,
-                                Alpha = 0.05, 
-                                TargetReturn = 0,
-                                NumAssets = 16)
+                                Alpha = Alpha, 
+                                TargetReturn = TargetReturn,
+                                NumAssets = NumAssets)
     
     # Calculate portfolio returns based on the optimal weights 
     ret_matrix_outofsample <- outofSample[[paste(as.Date(x) + 365)]][,colnames(returns)] # select valid stocks
@@ -181,7 +182,8 @@ Pipeline <- function(inSample, outofSample, Update, copulas){
 
 
 # Calculate cumulative returns
-results <- Pipeline(Ret_inSample, Ret_outofSample, Update, copulas = c("Clayton", "Joe"))
+results <- Pipeline(Ret_inSample, Ret_outofSample, Update, copulas = c("Clayton", "Gumbel"),
+                    Alpha = 0.05, TargetReturn = 0, NumAssets = 8)
 cumulative_returns <- cumprod(1 + results) - 1
 
 
