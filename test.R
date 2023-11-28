@@ -36,13 +36,10 @@ library("ROI.plugin.alabama") # Optimization
 
 
 # Importing modules
-source("data_preprocessing.R")
 source("garch_estimate.R")
 source("copula_estimate.R")
 source("portfolio_optimization.R")
-source("portfolio_analysis.R")
-source("performance_metrics.R")
-source("exporting_results.R")
+source("pipeline_module.R")
 
 
 # Fetch data
@@ -173,7 +170,7 @@ Pipeline <- function(inSample, outofSample, Update, copulas,
     
     # Calculate portfolio returns based on the optimal weights 
     ret_matrix_outofsample <- outofSample[[paste(as.Date(x) + 365)]][,colnames(returns)] # select valid stocks
-    portfolio_returns <- ret_matrix_outofsample  %*%  weights
+    portfolio_returns <- as.data.frame(ret_matrix_outofsample  %*%  weights)
   }) %>% 
     bind_rows()
   
