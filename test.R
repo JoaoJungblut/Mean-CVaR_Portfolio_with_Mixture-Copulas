@@ -134,10 +134,20 @@ Pipeline <- function(inSample, outofSample, Update, copulas){
     returns <- returns[, complete.cases(t(sigma))] # drop invalid stocks
     sigma <- sigma[,complete.cases(t(sigma))] # drop Na columns
     
-    ## Generating Mixture-Copula
-    copula_mixture <- OptMixtureCopulas(unif_dist, 
-                                        K = 10000,
-                                        combination = copulas)
+    # Generating Mixture-Copula
+    copula_mixture <- tryCatch(
+      {
+        OptMixtureCopulas(unif_dist, K = 10000, combination = copulas)
+      },
+      error = function(e) {
+        # If an error occurs, adjust uniform dist to have finite limits
+        unif_dist <- ifelse(unif_dist < 0.01, 0.01, unif_dist) # avoid convergence issues
+        unif_dist <- ifelse(unif_dist > 0.99, 0.99, unif_dist) # avoid convergence issues
+        
+        # Retry   
+        OptMixtureCopulas(unif_dist, K = 10000, combination = copulas)
+      }
+    )
     
     # Compute simulated standardized residuals using the mixture-copula and GARCH 
     zsim <- ComputeZSim(copula_mixture = copula_mixture, 
@@ -167,57 +177,6 @@ Pipeline <- function(inSample, outofSample, Update, copulas){
   
   return(Pipe)
 }
-
-
-# Create returns matrix
-returns <- Ret_inSample$`2021-12-31`
-
-
-# Fit the GARCH model to the returns data
-fit_garch <- FitGarch(returns)
-
-
-# Subset the matrix to keep only columns with complete cases
-garch_coef <- Filter(Negate(is.null), fit_garch$garch_coef) # Filtering NULL values 
-unif_dist <- fit_garch$unif_dist
-unif_dist <- unif_dist[, complete.cases(t(unif_dist))] # drop Na columns
-sigma <- fit_garch$sigma
-returns <- returns[, complete.cases(t(sigma))] # drop invalid stocks
-sigma <- sigma[,complete.cases(t(sigma))] # drop Na columns
-
-
-## Generating Mixture-Copula
-copula_mixture <- OptMixtureCopulas(unif_dist, 
-                                    K = 10000,
-                                    combination = c("Frank", "Joe"))
-
-
-# Compute simulated standardized residuals using the optimized mixture-copula and GARCH coefficients
-zsim <- ComputeZSim(copula_mixture = copula_mixture, 
-                    garch_coef = garch_coef)
-
-
-# Predict future returns using the GARCH model, simulated residuals, and volatility estimates
-ret_pred <- PredictGarch(returns = returns, 
-                         sigma = sigma,
-                         zsim = zsim,
-                         garch_coef = garch_coef)
-ret_pred <- as.data.frame(ret_pred)
-colnames(ret_pred) <- colnames(returns)
-
-
-# Perform CVaR optimization to determine the optimal portfolio weights
-weights <- rep(0, ncol(returns))
-names(weights) <- colnames(returns)
-weights <- CVaROptimization(returns = ret_pred,
-                            Alpha = 0.05, 
-                            TargetReturn = 0,
-                            NumAssets = 16)
-
-
-# Calculate portfolio returns based on the optimal weights 
-ret_matrix_outofsample <- Ret_outofSample$`2022-12-31`[,colnames(returns)]
-portfolio_returns <- ret_matrix_outofsample  %*%  weights
 
 
 # Calculate cumulative returns
