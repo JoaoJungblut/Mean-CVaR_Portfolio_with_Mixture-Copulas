@@ -115,6 +115,7 @@ Ret_outofSample
 # Define a function to perform computations for each  window
 Pipeline <- function(inSample, outofSample, Update, copulas){
   
+  # Set seed
   set.seed(2023)
   
   # Setting my pipeline
@@ -180,11 +181,12 @@ Pipeline <- function(inSample, outofSample, Update, copulas){
 
 
 # Calculate cumulative returns
-cumulative_returns <- cumprod(1 + portfolio_returns) - 1
+results <- Pipeline(Ret_inSample, Ret_outofSample, Update, copulas = c("Clayton", "Joe"))
+cumulative_returns <- cumprod(1 + results) - 1
 
 
 # Plot the cumulative returns
-plot(cumulative_returns, type = "l", col = "green", lwd = 2,
+plot(cumulative_returns, type = "l", col = "green", lwd = 1,
      main = "Portfolio Performance",
      xlab = "Time Period", ylab = "Cumulative Returns")
 
