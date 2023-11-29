@@ -111,8 +111,8 @@ Ret_outofSample
 
 # Calculate cumulative returns
 results <- Pipeline(Ret_inSample, Ret_outofSample, Update, 
-                    copulas = c("Clayton", "Gumbel"), K = 1000,
-                    Alpha = 0.05, TargetReturn = 0, NumAssets = 16)
+                    copulas = c("Gumbel", "t"), K = 100,
+                    Alpha = 0.05, TargetReturn = 0, NumAssets = 8)
 cumulative_returns <- cumprod(1 + results) - 1
 
 
