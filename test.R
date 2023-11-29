@@ -33,8 +33,6 @@ library("ROI")         # Optimization
 library("ROI.plugin.glpk") # Optimization
 library("ROI.plugin.quadprog") # Optimization
 library("ROI.plugin.alabama") # Optimization
-library(parallel)
-library(foreach)
 
 
 # Importing modules
@@ -112,10 +110,9 @@ Ret_outofSample
 
 
 # Calculate cumulative returns
-results <- Pipeline(Ret_inSample, Ret_outofSample, Update, copulas = c("Clayton", "Gumbel"),
-                    Alpha = 0.05, TargetReturn = 0, NumAssets = 8)
-results <- PipelineParallel(Ret_inSample, Ret_outofSample, Update, copulas = c("Frank", "Gumbel"),
-                            Alpha = 0.05, TargetReturn = 0, NumAssets = 8)
+results <- Pipeline(Ret_inSample, Ret_outofSample, Update, 
+                    copulas = c("Clayton", "Gumbel"), K = 1000,
+                    Alpha = 0.05, TargetReturn = 0, NumAssets = 16)
 cumulative_returns <- cumprod(1 + results) - 1
 
 
