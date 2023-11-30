@@ -33,6 +33,8 @@ library("ROI")         # Optimization
 library("ROI.plugin.glpk") # Optimization
 library("ROI.plugin.quadprog") # Optimization
 library("ROI.plugin.alabama") # Optimization
+library("ROML") # Portfolio Optimization
+library("ROML.portfolio") # Portfolio Optimization
 
 
 # Importing modules
@@ -109,10 +111,17 @@ names(Ret_outofSample) <- Update + 365
 Ret_outofSample
 
 
+# Declaring arguments in global environment
+K = 1000
+Alpha = 0.95
+TargetReturn = 0
+NumAssets = 8
+
+
 # Calculate cumulative returns
 results <- Pipeline(Ret_inSample, Ret_outofSample, Update, 
-                    copulas = c("Gumbel", "t"), K = 1000,
-                    Alpha = 0.05, TargetReturn = 0, NumAssets = 8)
+                    copulas = c("Gumbel", "t"), K = K,
+                    Alpha = Alpha, TargetReturn = TargetReturn, NumAssets = NumAssets)
 cumulative_returns <- cumsum(results)
 
 
@@ -120,28 +129,6 @@ cumulative_returns <- cumsum(results)
 plot(cumulative_returns$V1, type = "l", col = "black", lwd = 1,
      main = "Portfolio Performance",
      xlab = "Time Period", ylab = "Cumulative Returns")
-
-
-
-
-
-library("ROI")
-library("ROML")
-library("ROML.portfolio")
-
-m <- model()
-m$variable(portfolio, lb = 0)
-m$minimize(cvar(portfolio, 0.95))
-m$subject_to(budget_norm(portfolio))
-m$subject_to(cardinality(portfolio) <= 8)
-m$subject_to(reward(portfolio) >= 0)
-opt <- optimize(m, solver="glpk", data=list(returns = as.matrix(ret_pred)))
-round(opt$solution[grep("portfolio", names(opt$solution))], 3)
-
-
-
-returns <- Ret_inSample$`1997-12-31`
-returns
 
 
 
