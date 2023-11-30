@@ -20,7 +20,7 @@ LLCG <- function(params, U,
   
   if ("Clayton" %in% names(params)) {
     slot(copC, "parameters") <- params["Clayton"]
-    dCop[, 1] <- params["piC"] * copula::dCopula(U, copC)
+    dCop[, 1] <- pi["Clayton"] * copula::dCopula(U, copC)
   } 
   if ("Gumbel" %in% names(params)) {
     slot(copG, "parameters") <- params["Gumbel"]
@@ -101,7 +101,7 @@ eqfun <- function(params, U,
 
 
 
-OptMixtureCopulas <- function(unif_dist, K = 10000, combination) {
+OptMixtureCopulas <- function(unif_dist, K = 10000, combination, pi = NULL) {
   
   # OptMixtureCopulas: Function to optimize the mixture of copulas and generate copula variates.
   # Inputs:
@@ -119,12 +119,16 @@ OptMixtureCopulas <- function(unif_dist, K = 10000, combination) {
   lower <- numeric()
   upper <- numeric()
   
+  if(is.null(pi) == TRUE){
+    pi = c(Clayton = 1, Gumbel = 1, t = 1, Normal = 1, Frank = 1, Joe = 1)
+  }
+  
   if ("Clayton" %in% combination) {
-    copC <- copula::claytonCopula(param = 2, 
+    copC <- copula::claytonCopula(param = 10, 
                                   dim = ncol(unif_dist)) # Clayton copula with delta = 2
     params["Clayton"] <- copula::fitCopula(copC, unif_dist, "itau", 
                                            estimate.variance = TRUE)@estimate # Inversion of Kendall's tau for Clayton
-    params["piC"] <- 1/length(combination)
+    params["piC"] <- pi["Clayton"] 
     # Define lower and upper bounds for the copula parameters and weights
     lower["Clayton"] <- 0.1
     upper["Clayton"] <- copC@param.upbnd
@@ -133,11 +137,11 @@ OptMixtureCopulas <- function(unif_dist, K = 10000, combination) {
   } 
   
   if ("Gumbel" %in% combination) {
-    copG <- copula::gumbelCopula(param = 2, 
+    copG <- copula::gumbelCopula(param = 10, 
                                  dim = ncol(unif_dist)) # Gumbel copula with theta = 2
     params["Gumbel"] <- copula::fitCopula(copG, unif_dist, "itau", 
                                           estimate.variance = TRUE)@estimate # Inversion of Kendall's tau for Gumbel
-    params["piG"] <- 1/length(combination)
+    params["piG"] <- pi["Gumbel"] 
     # Define lower and upper bounds for the copula parameters and weights
     lower["Gumbel"] <- 1
     upper["Gumbel"] <- copG@param.upbnd
@@ -146,14 +150,14 @@ OptMixtureCopulas <- function(unif_dist, K = 10000, combination) {
   } 
   
   if ("t" %in% combination) {
-    copT <- copula::tCopula(param = 0.5,
+    copT <- copula::tCopula(param = 0.75,
                             dim = ncol(unif_dist),
                             df = ncol(unif_dist))   # t-Copula with parameter 0.5
     params["t1"] <- copula::fitCopula(copT, unif_dist, "mpl", 
                                       estimate.variance = FALSE)@estimate[1] # MPL to estimate Degrees of Freedom (DF)
     params["t2"] <- copula::fitCopula(copT, unif_dist, "mpl", 
                                       estimate.variance = FALSE)@estimate[2] # MPL to estimate Degrees of Freedom (DF)
-    params["piT"] <- 1/length(combination)
+    params["piT"] <- pi["t"] 
     # Define lower and upper bounds for the copula parameters and weights
     lower["t1"] <- -0.9 
     upper["t1"] <- 1 
@@ -164,11 +168,11 @@ OptMixtureCopulas <- function(unif_dist, K = 10000, combination) {
   }
   
   if ("Normal" %in% combination) {
-    copN <- copula::normalCopula(param = 0.5, 
+    copN <- copula::normalCopula(param = 0.75, 
                                  dim = ncol(unif_dist)) # Gaussian copula with parameter 0.5
     params["Normal"] <- copula::fitCopula(copN, unif_dist, "mpl", 
                                           estimate.variance = FALSE)@estimate # MPL to estimate parameters for Gaussian copula.
-    params["piN"] <- 1/length(combination)
+    params["piN"] <- pi["Normal"] 
     # Define lower and upper bounds for the copula parameters and weights
     lower["Normal"] <- copN@param.lowbnd
     upper["Normal"] <- copN@param.upbnd  
@@ -177,11 +181,11 @@ OptMixtureCopulas <- function(unif_dist, K = 10000, combination) {
   } 
   
   if ("Frank" %in% combination) {
-    copF <- copula::frankCopula(param = 1, 
+    copF <- copula::frankCopula(param = 9, 
                                 dim = ncol(unif_dist)) # Frank copula with parameter 1
     params["Frank"] <- copula::fitCopula(copF, unif_dist, "mpl", 
                                          estimate.variance = FALSE)@estimate # MPL to estimate parameters for Frank copula.
-    params["piF"] <- 1/length(combination)
+    params["piF"] <- pi["Frank"] 
     # Define lower and upper bounds for the copula parameters and weights
     lower["Frank"] <- copF@param.lowbnd
     upper["Frank"] <- copF@param.upbnd 
@@ -190,18 +194,18 @@ OptMixtureCopulas <- function(unif_dist, K = 10000, combination) {
   } 
   
   if ("Joe" %in% combination) {
-    copJ <- copula::joeCopula(param = 2,
+    copJ <- copula::joeCopula(param = 7,
                               dim = ncol(unif_dist)) # Joe copula
     params["Joe"] <- copula::fitCopula(copJ, unif_dist, "mpl", 
                                        estimate.variance = FALSE)@estimate # MPL to estimate parameters for Joe copula.
-    params["piJ"] <- 1/length(combination)
+    params["piJ"] <- pi["Joe"] 
     # Define lower and upper bounds for the copula parameters and weights
     lower["Joe"] <- copJ@param.lowbnd
     upper["Joe"] <- copJ@param.upbnd  
     lower["piJ"] <- 0
     upper["piJ"] <- 1 
   } 
-
+  
   
   ## Non-linear constrained optimization (RSOLNP)
   opt <- Rsolnp::solnp(pars = params,
@@ -223,43 +227,43 @@ OptMixtureCopulas <- function(unif_dist, K = 10000, combination) {
   # Linear combination of copula varieties
   MixtureCopula <- 0
   if ("Clayton" %in% combination) {
-    cC <- opt$pars["piC"] * copula::rCopula(n = 10000, 
-                                           copula = claytonCopula(param = opt$pars["Clayton"],
-                                                                  dim = ncol(unif_dist)))
+    cC <- opt$pars["piC"] * copula::rCopula(n = K, 
+                                            copula = claytonCopula(param = opt$pars["Clayton"],
+                                                                   dim = ncol(unif_dist)))
     MixtureCopula <- MixtureCopula + cC
   } 
   
   if ("Gumbel" %in% combination) {
-    cG <- opt$pars["piG"] * copula::rCopula(n = 10000, 
+    cG <- opt$pars["piG"] * copula::rCopula(n = K, 
                                             copula = gumbelCopula(param = opt$pars["Gumbel"],
                                                                   dim = ncol(unif_dist)))
     MixtureCopula <- MixtureCopula + cG
   } 
   
   if ("t" %in% combination) {
-    cT <- opt$pars["piT"] * copula::rCopula(n = 10000, 
-                                             copula = tCopula(param = opt$pars["t1"],
-                                                              df = opt$pars["t2"],
-                                                              dim = ncol(unif_dist)))
+    cT <- opt$pars["piT"] * copula::rCopula(n = K, 
+                                            copula = tCopula(param = opt$pars["t1"],
+                                                             df = opt$pars["t2"],
+                                                             dim = ncol(unif_dist)))
     MixtureCopula <- MixtureCopula + cT
   }
   
   if ("Normal" %in% combination) {
-    cN <- opt$pars["piN"] * copula::rCopula(n = 10000, 
+    cN <- opt$pars["piN"] * copula::rCopula(n = K, 
                                             copula = normalCopula(param = opt$pars["Normal"],
                                                                   dim = ncol(unif_dist)))
     MixtureCopula <- MixtureCopula + cN
   } 
   
   if ("Frank" %in% combination) {
-    cF <- opt$pars["piF"] * copula::rCopula(n = 10000, 
+    cF <- opt$pars["piF"] * copula::rCopula(n = K, 
                                             copula = frankCopula(param = opt$pars["Frank"],
                                                                  dim = ncol(unif_dist)))
     MixtureCopula <- MixtureCopula + cF
   } 
   
   if ("Joe" %in% combination) {
-    cJ <- opt$pars["piJ"] * copula::rCopula(n = 10000, 
+    cJ <- opt$pars["piJ"] * copula::rCopula(n = K, 
                                             copula = joeCopula(param = opt$pars["Joe"],
                                                                dim = ncol(unif_dist)))
     MixtureCopula <- MixtureCopula + cJ
@@ -268,7 +272,6 @@ OptMixtureCopulas <- function(unif_dist, K = 10000, combination) {
   # Return the ctg matrix
   return(MixtureCopula)
 }
-
 
 
 GaussCopula <- function(unif_dist, K = 10000){
