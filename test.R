@@ -112,15 +112,16 @@ Ret_outofSample
 
 
 # Declaring arguments in global environment
-K = 10000
+K = 1000
 Alpha = 0.95
 TargetReturn = 0
 NumAssets = 8
-
+copulas = c("Gumbel", "t")
+pi = c(Gumbel = 10, t = 2)
 
 # Calculate cumulative returns
 results <- Pipeline(Ret_inSample, Ret_outofSample, Update, 
-                    copulas = c("Clayton", "Joe"), K = K,
+                    copulas = c("Gumbel", "t"), K = K, pi = pi,
                     Alpha = Alpha, TargetReturn = TargetReturn, NumAssets = NumAssets)
 cumulative_returns <- cumsum(results)
 
