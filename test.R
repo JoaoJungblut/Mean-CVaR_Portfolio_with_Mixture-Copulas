@@ -111,13 +111,13 @@ Ret_outofSample
 
 # Calculate cumulative returns
 results <- Pipeline(Ret_inSample, Ret_outofSample, Update, 
-                    copulas = c("Gumbel", "t"), K = 100,
+                    copulas = c("Gumbel", "t"), K = 1000,
                     Alpha = 0.05, TargetReturn = 0, NumAssets = 8)
 cumulative_returns <- cumsum(results)
 
 
 # Plot the cumulative returns
-plot(cumulative_returns$V1, type = "l", col = "green", lwd = 1,
+plot(cumulative_returns$V1, type = "l", col = "black", lwd = 1,
      main = "Portfolio Performance",
      xlab = "Time Period", ylab = "Cumulative Returns")
 
