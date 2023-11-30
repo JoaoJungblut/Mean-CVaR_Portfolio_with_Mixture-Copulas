@@ -125,6 +125,32 @@ plot(cumulative_returns$V1, type = "l", col = "black", lwd = 1,
 
 
 
+library("ROI")
+library("ROML")
+library("ROML.portfolio")
+
+m <- model()
+m$variable(portfolio, lb = 0)
+m$minimize(cvar(portfolio, 0.95))
+m$subject_to(budget_norm(portfolio))
+m$subject_to(cardinality(portfolio) <= 8)
+m$subject_to(reward(portfolio) >= 0)
+opt <- optimize(m, solver="glpk", data=list(returns = as.matrix(ret_pred)))
+round(opt$solution[grep("portfolio", names(opt$solution))], 3)
+
+
+
+returns <- Ret_inSample$`1997-12-31`
+returns
+
+
+
+
+
+
+
+
+
 
 
 
