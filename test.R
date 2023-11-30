@@ -121,3 +121,11 @@ plot(cumulative_returns$V1, type = "l", col = "black", lwd = 1,
      main = "Portfolio Performance",
      xlab = "Time Period", ylab = "Cumulative Returns")
 
+
+
+
+
+
+
+
+
