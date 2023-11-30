@@ -117,7 +117,7 @@ Alpha = 0.95
 TargetReturn = 0
 NumAssets = 8
 copulas = c("Gumbel", "t")
-pi = c(Gumbel = 10, t = 2)
+pi = c(Gumbel = 1, t = 1)
 
 # Calculate cumulative returns
 results <- Pipeline(Ret_inSample, Ret_outofSample, Update, 
