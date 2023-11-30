@@ -141,6 +141,34 @@ CVaROptimization <- function(returns,
 }
 
 
+CVaROptimization <- function(returns, 
+                             Alpha = 0.95, 
+                             TargetReturn = 0,
+                             NumAssets = 8) {
+  
+  # CVaROptimization: Function to perform CVaR optimization for portfolio weights.
+  # Inputs:
+  #   returns: A data frame of asset returns.
+  #   Alpha: CVaR alpha level (default = 0.025).
+  #   TargetReturn: Daily target return constraint (default = 0).
+  #   Turnover: Daily turnover measure constraint (default = 0.0003) equal to transaction costs. 
+  #   NumAssets: Maximum number of assets in the portfolio (default = 8).
+  # Output:
+  #   A matrix containing the optimized portfolio weights using CVaR optimization.
+  
+  m <- model()
+  m$variable(portfolio, lb = 0)
+  m$minimize(cvar(portfolio, alpha = Alpha))
+  m$subject_to(budget_norm(portfolio))
+  m$subject_to(reward(portfolio) >= TargetReturn)
+  m$subject_to(cardinality(portfolio) <= NumAssets)
+  opt <- optimize(m, solver="glpk", data=list(returns = as.matrix(returns)))
+  weights <- round(opt$solution[grep("portfolio", names(opt$solution))], 3)
+  
+  return(weights)
+}
+
+
 
 NaiveDiversification <- function(returns) {
   
