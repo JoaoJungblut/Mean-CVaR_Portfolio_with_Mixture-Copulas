@@ -112,12 +112,12 @@ Ret_outofSample
 
 
 # Declaring arguments in global environment
-K = 1000
+K = 100
 Alpha = 0.95
 TargetReturn = 0
-NumAssets = 8
-copulas = c("Gumbel", "t", "Clayton")
-pi = c(Gumbel = 1, t = 1, Clayton = 1)
+NumAssets = 12
+copulas = c("Frank", "Normal", "Joe")
+pi = c(Frank = 1/3, Normal = 1/3, Joe = 1/3)
 
 
 # Calculate cumulative returns
