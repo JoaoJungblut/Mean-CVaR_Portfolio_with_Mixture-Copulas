@@ -119,6 +119,7 @@ NumAssets = 8
 copulas = c("Gumbel", "t", "Clayton")
 pi = c(Gumbel = 1, t = 1, Clayton = 1)
 
+
 # Calculate cumulative returns
 results <- Pipeline(Ret_inSample, Ret_outofSample, Update, 
                     copulas = c("Gumbel", "t"), K = K, pi = pi,
