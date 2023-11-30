@@ -1,5 +1,5 @@
 # Define a function to perform computations for each  window
-Pipeline <- function(inSample, outofSample, Update, copulas, K = 10000,
+Pipeline <- function(inSample, outofSample, Update, copulas, K = 10000, pi,
                      Alpha = 0.95, TargetReturn = 0, NumAssets = 8){
   
   # Set seed
@@ -25,7 +25,7 @@ Pipeline <- function(inSample, outofSample, Update, copulas, K = 10000,
     # Generating Mixture-Copula
     copula_mixture <- tryCatch(
       {
-        OptMixtureCopulas(unif_dist, K = 10000, combination = copulas)
+        OptMixtureCopulas(unif_dist, K = K, combination = copulas, pi = pi)
       },
       error = function(e) {
         # If an error occurs, adjust uniform dist to have finite limits
@@ -33,7 +33,7 @@ Pipeline <- function(inSample, outofSample, Update, copulas, K = 10000,
         unif_dist <- ifelse(unif_dist > 0.99, 0.99, unif_dist) # avoid convergence issues
         
         # Retry   
-        OptMixtureCopulas(unif_dist, K = K, combination = copulas)
+        OptMixtureCopulas(unif_dist, K = K, combination = copulas, pi = pi)
       }
     )
     
