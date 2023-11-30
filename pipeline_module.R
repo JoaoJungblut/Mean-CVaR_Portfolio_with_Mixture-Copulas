@@ -1,6 +1,6 @@
 # Define a function to perform computations for each  window
 Pipeline <- function(inSample, outofSample, Update, copulas, K = 10000,
-                     Alpha = 0.05, TargetReturn = 0, NumAssets = 8){
+                     Alpha = 0.95, TargetReturn = 0, NumAssets = 8){
   
   # Set seed
   set.seed(2023)
@@ -50,12 +50,11 @@ Pipeline <- function(inSample, outofSample, Update, copulas, K = 10000,
     colnames(ret_pred) <- colnames(returns)
     
     # Perform CVaR optimization to determine the optimal portfolio weights
-    weights <- rep(0, ncol(returns))
-    names(weights) <- colnames(returns)
     weights <- CVaROptimization(returns = ret_pred,
                                 Alpha = Alpha, 
                                 TargetReturn = TargetReturn,
                                 NumAssets = NumAssets)
+    names(weights) <- colnames(returns)
     
     # Calculate portfolio returns based on the optimal weights 
     ret_matrix_outofsample <- outofSample[[paste(as.Date(x) + 365)]][,colnames(returns)] # select valid stocks
