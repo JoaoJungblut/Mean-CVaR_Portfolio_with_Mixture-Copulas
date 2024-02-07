@@ -2,6 +2,8 @@
 
 This repository contains the code and documentation for my final course project at Universidade Federal do Rio Grande do Sul (UFRGS) in economic science. The project focuses on the usage of mixture copulas for portfolio optimization using the worst-case Conditional Value at Risk (CVaR). The analysis is conducted on a dataset of ETF (Exchange-Traded Fund) returns.
 
+More information at https://lume.ufrgs.br/handle/10183/265965
+
 ## Project Structure
 
 - **data_directory/**: This directory contains the following CSV files:
