@@ -116,8 +116,8 @@ K = 100
 Alpha = 0.95
 TargetReturn = 0
 NumAssets = 12
-copulas = c("Joe", "Clayton", "Frank")
-pi = c(Joe = 1/3, Clayton = 1/3, Frank = 1/3)
+copulas = c("Clayton", "Gumbel", "t")
+pi = c(Clayton = 1/3, Gumbel = 1/3, t = 1/3)
 
 
 # Calculate cumulative returns
